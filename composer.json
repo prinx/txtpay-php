@@ -1,0 +1,25 @@
+{
+    "name": "txtghana/txtpay",
+    "description": "TXTGHANA Payment Gateway SDK.",
+    "type": "library",
+    "require": {
+        "prinx/dotenv": "^0.4",
+        "prinx/notify": "^0.0",
+        "symfony/http-client": "^5.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Txtpay\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests"
+        }
+    },
+    "license": "MIT",
+    "minimum-stability": "stable"
+}
