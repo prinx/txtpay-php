@@ -42,19 +42,51 @@ class MobileMoney
         $this->secondaryCallback = $secondaryCallback;
     }
 
-    public static function create()
-    {
-        return (new static())
-            ->setNickname(env('TXTPAY_API_NICKNAME'))
-            ->setDescription(env('TXTPAY_API_DESCRIPTION'))
-            ->setAccount(env('TXTPAY_API_ACCOUNT'))
-            ->setApiId(env('TXTPAY_API_ID'))
-            ->setApiKey(env('TXTPAY_API_KEY'))
-            ->setPrimaryCallback(env('TXTPAY_API_PRIMARY_CALLBACK'))
-            ->setSecondaryCallback(env('TXTPAY_API_SECONDARY_CALLBACK'));
+    /**
+     * Create a new instance of the mobile money class with value in the .env file.
+     *
+     * @param string|int|double $amount
+     * @param string $phone
+     * @param string $network
+     * @param string $voucherCode
+     * 
+     * @return MobileMoney
+     */
+    public static function create(
+        $amount = null,
+        $phone = null,
+        $network = null,
+        $voucherCode = null
+    ) {
+        $mobileMoney = (new static())
+            ->setApiId(env('TXTPAY_ID'))
+            ->setApiKey(env('TXTPAY_KEY'))
+            ->setAccount(env('TXTPAY_ACCOUNT'))
+            ->setNickname(env('TXTPAY_NICKNAME'))
+            ->setDescription(env('TXTPAY_DESCRIPTION'))
+            ->setPrimaryCallback(env('TXTPAY_PRIMARY_CALLBACK'))
+            ->setSecondaryCallback(env('TXTPAY_SECONDARY_CALLBACK'));
+
+        foreach (['amount', 'network', 'phone', 'voucherCode'] as $name) {
+            if (!is_null($$name)) {
+                $mobileMoney->{'set'.ucfirst($name)}($$name);
+            }
+        }
+
+        return $mobileMoney;
     }
 
-    public function sendRequest(
+    /**
+     * Send Mobile Money request to the specified phone number with the specified amount.
+     *
+     * @param string|int|double $amount
+     * @param string $phone
+     * @param string $network
+     * @param string $voucherCode
+     * 
+     * @return stdClass
+     */
+    public function request(
         $amount = null,
         $phone = null,
         $network = null,

@@ -20,6 +20,8 @@ class Callback
      */
     protected $logger;
 
+    protected $payload;
+
     protected $requiredParameters = [
         'code',
         'status',
@@ -31,6 +33,17 @@ class Callback
         'currency',
     ];
     
+    protected $customPayloadNames = [
+        'code'              => 'code',
+        'status'            => 'status',
+        'reason'            => 'details',
+        'transaction_id'    => 'id',
+        'r_switch'          => 'network',
+        'subscriber_number' => 'phone',
+        'amount'            => 'amount',
+        'currency'          => 'currency'
+    ];
+
     protected $defaultRequiredParameter = 'code';
 
     protected $successCodes = ['000'];
@@ -89,7 +102,7 @@ class Callback
             $params = [$this->defaultRequiredParameter => $params];
         }
 
-        $payload = $this->request();
+        $payload = $this->getPayload();
         $match = true;
 
         foreach ($params as $key => $value) {
@@ -117,8 +130,8 @@ class Callback
      */
     public function success(Closure $callback)
     {
-        if (in_array($this->request($this->defaultRequiredParameter), $this->succesCodes)) {
-            call_user_func($callback, $this->request(), $this);
+        if (in_array($this->getPayload($this->defaultRequiredParameter), $this->succesCodes)) {
+            call_user_func($callback, $this->getPayload(), $this);
         }
 
         return $this;
@@ -135,8 +148,8 @@ class Callback
      */
     public function failure(Closure $callback)
     {
-        if (in_array($this->request($this->defaultRequiredParameter), $this->failureCodes)) {
-            call_user_func($callback, $this->request(), $this);
+        if (in_array($this->getPayload($this->defaultRequiredParameter), $this->failureCodes)) {
+            call_user_func($callback, $this->getPayload(), $this);
         }
 
         return $this;
@@ -151,27 +164,39 @@ class Callback
      */
     public function always(Closure $callback)
     {
-        call_user_func($callback, $this->request(), $this);
+        call_user_func($callback, $this->getPayload(), $this);
 
         return $this;
     }
 
     /**
-     * Set status codes.
+     * Add status codes.
      *
      * @param string|string[] $code Code or array of codes
      * 
      * @return $this
      */
-    public function setSuccessCode($code)
+    public function addSuccessCode($code)
     {
         if (!is_array($code)) {
             $code = [$code];
         }
 
-        $this->succesCodes = array_merge($this->succesCodes, $code);
+        $this->succesCodes = array_unique(array_merge($this->succesCodes, $code));
+
+        $this->failureCodes = $this->removeFromArray($this->failureCodes, $code);
 
         return $this;
+    }
+
+    /**
+     * Success codes.
+     *
+     * @return array
+     */
+    public function getSuccessCodes()
+    {
+        return $this->successCodes;
     }
 
     /**
@@ -181,15 +206,42 @@ class Callback
      * 
      * @return $this
      */
-    public function setFailureCode($code)
+    public function addFailureCode($code)
     {
         if (!is_array($code)) {
             $code = [$code];
         }
 
-        $this->failureCodes = array_merge($this->failureCodes, $code);
+        $this->failureCodes = array_unique(array_merge($this->failureCodes, $code));
+
+        $this->successCodes = $this->removeFromArray($this->successCodes, $code);
 
         return $this;
+    }
+
+    /**
+     * Failure codes.
+     *
+     * @return array
+     */
+    public function getFailureCodes()
+    {
+        return $this->failureCodes;
+    }
+
+    /**
+     * Remove value(s) from array.
+     *
+     * @param array $array
+     * @param string|array $toRemove
+     * 
+     * @return array
+     */
+    public function removeFromArray($array, $toRemove)
+    {
+        $toRemove = is_string($toRemove) ? [$toRemove] : $toRemove;
+
+        return array_diff($array, $toRemove);
     }
 
     public function captureRequest()
@@ -198,42 +250,46 @@ class Callback
          * @see https://stackoverflow.com/a/11990821/14066311
          */
         $json = file_get_contents('php://input');
-        $request = (array) json_decode($json, true);
+        $payload = (array) json_decode($json, true);
 
-        $this->setRequest($request);
-        $this->validateRequest();
-        $this->logRequest();
+        $this->validatePayload($payload);
+        $this->setPayload($payload);
+        $this->logPayload();
 
         return $this;
     }
 
-    public function setRequest($request = [])
+    public function setPayload($payload = [])
     {
-        $this->request = array_replace($request, $_REQUEST);
+        $this->originalPayload = array_replace($payload, $_REQUEST);
+
+        foreach ($this->customPayloadNames as $original => $custom) {
+            $this->payload[$custom] = $this->originalPayload[$original];
+        }
 
         return $this;
     }
 
-    public function validateRequest()
+    public function validatePayload($payload)
     {
         foreach ($this->requiredParameters as $param) {
-            if (!isset($this->request()[$param])) {
+            if (!isset($payload[$param])) {
                 $this->log(
-                    "Missing parameters {$param} in the request.\n".
-                    'Request: '.json_encode($this->request(), JSON_PRETTY_PRINT),
+                    "Missing parameters \"{$param}\" in the request.\n".
+                    'Payload: '.json_encode($payload, JSON_PRETTY_PRINT),
                     $this->failureLog()
                 );
 
-                exit('Missing parameters');
+                exit('Some parameters are missing in the request payload.');
             }
         }
     }
 
-    public function logRequest()
+    public function logPayload()
     {
         $this->log(
-            'Callback Received for momo transaction to '.$this->request('subscriber_number').
-            "\nRequest: ".json_encode($this->request(), JSON_PRETTY_PRINT),
+            'Callback Received for momo transaction to '.$this->getPayload('phone').
+            "\nPayload: ".json_encode($this->getPayload(), JSON_PRETTY_PRINT),
             $this->callbackLog()
         );
     }
@@ -275,9 +331,9 @@ class Callback
         echo $message;
     }
 
-    public function request($attribute = null)
+    public function getPayload($attribute = null)
     {
-        return $attribute ? $this->request[$attribute] ?? null : $this->request;
+        return $attribute ? $this->payload[$attribute] ?? $this->originalPayload[$attribute] ?? null : $this->payload;
     }
 
     public function callbackLog()
