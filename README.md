@@ -10,29 +10,37 @@ composer require txtghana/txtpay
 
 ## Usage
 
-Configure in the .env file at the root of the project:
+First create a `.env` file in your project root folder, if you don't have any already.
+
+Next, configure the .env by putting your txtpay credentials and account informations:
 
 ```ini
-TXTPAY_ID=
-TXTPAY_KEY=
-TXTPAY_ACCOUNT=
-TXTPAY_NICKNAME=
-TXTPAY_DESCRIPTION=
-TXTPAY_PRIMARY_CALLBACK=
-TXTPAY_SECONDARY_CALLBACK=
+#...
+
+TXTPAY_ID=your_txtpay_id
+TXTPAY_KEY=your_txtpay_key
+TXTPAY_ACCOUNT=your_txtpay_account
+TXTPAY_NICKNAME=your_txtpay_nickname
+TXTPAY_DESCRIPTION=your_txtpay_description
+TXTPAY_PRIMARY_CALLBACK=primary_callback
+TXTPAY_SECONDARY_CALLBACK=secondary_callback
 ```
+
+The primary and secondary callbacks are URL where `TXTPAY` will send the result of the transaction. YOu can check how to handle the transaction callback [here](#process-callback).
 
 ### Request a payment
 
 ```php
-$payment = MobileMoney::create();
+$payment = (new MobileMoney)->autoConfig();
 
 $amount = 1; // 1 GHC
 $phone = '233...';
 $network = 'MTN'; // MTN|AIRTEL|VODAFONE
 
-$payment->request($amount, $phone, $network);
+$request = $payment->request($amount, $phone, $network);
 ```
+
+The `autoConfig` method will Automatically retrieve the configuration in the `.env` file and set them on the payment instance.
 
 #### Voucher code
 
@@ -40,12 +48,33 @@ Some networks (VODAFONE) require the user to generate some extra code called vou
 
 ```php
 $payment->setVoucherCode($voucherCode);
-$payment->request($amount, $phone, $network);
+$request = $payment->request($amount, $phone, $network);
 
 // or
 
-$payment->request($amount, $phone, $network, $voucherCode);
+$request = $payment->request($amount, $phone, $network, $voucherCode);
 ```
+
+#### Mobile money request response
+
+The mobile money request will Automatically return a response. You can determine from the response if the request was successful or not.
+
+```php
+$request = $payment->request($amount, $phone, $network);
+
+if ($request->successful) {
+    $status = $request->status;
+
+    // ...
+} else {
+    $error = $request->error;
+
+    // ...
+}
+```
+
+> WARNING:
+This response is just to notify you that your request has been received and is been processed or something went wrong when sending the request. This is not the actual response of the mobile money request. The actual response of the mobile money request will be sent to your provided callback URL.
 
 ### Process callback
 

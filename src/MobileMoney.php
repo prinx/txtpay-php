@@ -44,23 +44,22 @@ class MobileMoney
     }
 
     /**
-     * Create a new instance of the mobile money class with value in the .env file.
+     * Automatically discover and set configurations in the .env file.
      *
      * @param string|int|double $amount
      * @param string $phone
      * @param string $network
      * @param string $voucherCode
      * 
-     * @return MobileMoney
+     * @return $this
      */
-    public static function create(
+    public function autoConfig(
         $amount = null,
         $phone = null,
         $network = null,
         $voucherCode = null
     ) {
-        $mobileMoney = (new static())
-            ->setApiId(env('TXTPAY_ID'))
+        $this->setApiId(env('TXTPAY_ID'))
             ->setApiKey(env('TXTPAY_KEY'))
             ->setAccount(env('TXTPAY_ACCOUNT'))
             ->setNickname(env('TXTPAY_NICKNAME'))
@@ -71,12 +70,12 @@ class MobileMoney
         $vars = get_defined_vars();
 
         foreach ($vars as $name => $value) {
-            if (!is_null($value)) {
-                $mobileMoney->{'set'.ucfirst($name)}($value);
+            if ($value) {
+                $this->{'set'.ucfirst($name)}($value);
             }
         }
 
-        return $mobileMoney;
+        return $this;
     }
 
     /**
@@ -148,6 +147,7 @@ class MobileMoney
             $data = [
                 'successful' => false,
                 'error'      => curl_error($ch),
+                'response'   => $result,
             ];
 
             $this->log($data);

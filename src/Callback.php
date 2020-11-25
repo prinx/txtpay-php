@@ -65,7 +65,7 @@ class Callback
      *
      * @var bool
      */
-    protected $isSuccessful;
+    protected $successful;
 
     /**
      * Callbacks
@@ -293,21 +293,21 @@ class Callback
         SlackLog::log($message, $level);
     }
 
-    public function isSuccessful()
+    public function successful()
     {
-        if (is_null($this->isSuccessful)) {
-            $this->isSuccessful = in_array(
+        if (is_null($this->successful)) {
+            $this->successful = in_array(
                 $this->getPayload($this->defaultConditionName),
                 $this->successCodes
             );
         }
 
-        return $this->isSuccessful;
+        return $this->successful;
     }
-    
-    public function hasFailed()
+
+    public function failed()
     {
-        return !$this->isSuccessful();
+        return !$this->successful();
     }
 
     public function messages($code = null, $transactionId = null)
