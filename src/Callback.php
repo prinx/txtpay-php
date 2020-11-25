@@ -94,7 +94,7 @@ class Callback
             $conditions = [$this->defaultConditionName => $conditions];
         }
 
-        $payload = $this->getPayload();
+        $payload = $this->payload();
         $match = true;
 
         foreach ($conditions as $key => $value) {
@@ -126,7 +126,7 @@ class Callback
      */
     public function success(Closure $callback)
     {
-        if (in_array($this->getPayload($this->defaultConditionName), $this->successCodes)) {
+        if (in_array($this->payload($this->defaultConditionName), $this->successCodes)) {
             $this->register($callback);
         }
 
@@ -144,7 +144,7 @@ class Callback
      */
     public function failure(Closure $callback)
     {
-        if (in_array($this->getPayload($this->defaultConditionName), $this->failureCodes)) {
+        if (in_array($this->payload($this->defaultConditionName), $this->failureCodes)) {
             $this->register($callback);
         }
 
@@ -198,7 +198,9 @@ class Callback
     public function runCallbacks()
     {
         foreach ($this->callbacks as $callback) {
-            call_user_func_array($callback, [$this->getPayload(), $this]);
+            $callback = $callback->bindTo($this);
+
+            call_user_func_array($callback, [$this->payload(), $this]);
         }
     }
 
@@ -207,7 +209,7 @@ class Callback
      *
      * @return array
      */
-    public function getSuccessCodes()
+    public function successCodes()
     {
         return $this->successCodes;
     }
@@ -217,7 +219,7 @@ class Callback
      *
      * @return array
      */
-    public function getFailureCodes()
+    public function failureCodes()
     {
         return $this->failureCodes;
     }
@@ -248,7 +250,7 @@ class Callback
         return $this;
     }
 
-    public function getPayload($attribute = null)
+    public function payload($attribute = null)
     {
         return $attribute ? $this->payload[$attribute] ?? $this->originalPayload[$attribute] ?? null : $this->payload;
     }
@@ -271,8 +273,8 @@ class Callback
     public function logPayload()
     {
         $this->log(
-            'Callback Received for momo transaction to '.$this->getPayload('phone').
-            "\nPayload: ".json_encode($this->getPayload(), JSON_PRETTY_PRINT),
+            'Callback Received for momo transaction to '.$this->payload('phone').
+            "\nPayload: ".json_encode($this->payload(), JSON_PRETTY_PRINT),
             $this->callbackLog()
         );
     }
@@ -297,7 +299,7 @@ class Callback
     {
         if (is_null($this->successful)) {
             $this->successful = in_array(
-                $this->getPayload($this->defaultConditionName),
+                $this->payload($this->defaultConditionName),
                 $this->successCodes
             );
         }
@@ -328,7 +330,7 @@ class Callback
 
     public function message()
     {
-        return $this->messages($this->getPayload('code'), $this->getPayload('id'));
+        return $this->messages($this->payload('code'), $this->payload('id'));
     }
 
     public function respond($message)
@@ -369,41 +371,41 @@ class Callback
 
     public function id()
     {
-        return $this->getPayload('id');
+        return $this->payload('id');
     }
 
     public function phone()
     {
-        return $this->getPayload('phone');
+        return $this->payload('phone');
     }
 
     public function amount()
     {
-        return $this->getPayload('amount');
+        return $this->payload('amount');
     }
 
     public function code()
     {
-        return $this->getPayload('code');
+        return $this->payload('code');
     }
 
     public function status()
     {
-        return $this->getPayload('status');
+        return $this->payload('status');
     }
 
     public function details()
     {
-        return $this->getPayload('details');
+        return $this->payload('details');
     }
 
     public function network()
     {
-        return $this->getPayload('network');
+        return $this->payload('network');
     }
 
     public function currency()
     {
-        return $this->getPayload('currency');
+        return $this->payload('currency');
     }
 }

@@ -124,7 +124,7 @@ class MobileMoney
         $ch = curl_init();
 
         curl_setopt_array($ch, [
-            CURLOPT_URL            => $this->getPaymentUrl(),
+            CURLOPT_URL            => $this->paymentUrl(),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING       => '',
             CURLOPT_MAXREDIRS      => 10,
@@ -193,7 +193,7 @@ class MobileMoney
         $ch = curl_init();
 
         curl_setopt_array($ch, [
-            CURLOPT_URL            => $this->getTokenUrl(),
+            CURLOPT_URL            => $this->tokenUrl(),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING       => '',
             CURLOPT_MAXREDIRS      => 10,
@@ -248,26 +248,26 @@ class MobileMoney
         return $this->transactionId;
     }
 
-    public function getTokenUrl()
+    public function tokenUrl()
     {
         return 'https://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/token';
     }
 
-    public function getPaymentUrl()
+    public function paymentUrl()
     {
         return 'http://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/payment-app/receive-money/';
     }
 
     public function log($data, $level = 'info')
     {
-        $logger = $this->getLogger();
+        $logger = $this->logger();
 
         if (!is_null($logger) && method_exists($logger, $level)) {
             call_user_func([$logger, $level], $data);
         }
     }
 
-    public function getLogFile()
+    public function logFile()
     {
         return $this->logFile;
     }
@@ -291,7 +291,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getLogger()
+    public function logger()
     {
         if (is_null($this->logFile)) {
             $this->logFile = new Log;
@@ -308,7 +308,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getAccount()
+    public function account()
     {
         return $this->account;
     }
@@ -320,7 +320,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getNetwork()
+    public function network()
     {
         return $this->network;
     }
@@ -332,7 +332,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getApiId()
+    public function apiId()
     {
         return $this->apiId;
     }
@@ -344,7 +344,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getApiKey()
+    public function apiKey()
     {
         $this->apiKey;
     }
@@ -356,7 +356,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getPrimaryCallback()
+    public function primaryCallback()
     {
         return $this->primaryCallback;
     }
@@ -368,7 +368,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getSecondaryCallback()
+    public function secondaryCallback()
     {
         return $this->secondaryCallback;
     }
@@ -380,7 +380,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getDescription()
+    public function description()
     {
         return $this->description;
     }
@@ -392,7 +392,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getNickname()
+    public function nickname()
     {
         return $this->nickname;
     }
@@ -404,7 +404,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getVoucherCode()
+    public function voucherCode()
     {
         return $this->voucherCode;
     }
@@ -416,7 +416,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getAmount()
+    public function amount()
     {
         return $this->amount;
     }
@@ -428,7 +428,7 @@ class MobileMoney
         return $this;
     }
 
-    public function getPhone()
+    public function phone()
     {
         return $this->phone;
     }

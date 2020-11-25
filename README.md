@@ -150,7 +150,7 @@ $callback->process(function ($payload, $callback) {
 
 #### Successful transaction
 
-The code of the transaction determines if the transaction is successful or has failed. By default, the successful transaction codes are in the array returned by `$callback->getSuccessCodes()`. You can decide (for any reason it may be) to consider a failure code as success code by adding it to the success codes with the `$callback->addSuccessCode($code)` method.
+The code of the transaction determines if the transaction is successful or has failed. By default, the successful transaction codes are in the array returned by `$callback->successCodes()`. You can decide (for any reason it may be) to consider a failure code as success code by adding it to the success codes with the `$callback->addSuccessCode($code)` method.
 
 #### The `on` method
 
@@ -163,15 +163,15 @@ use Txtpay\Callback;
 
 $callback = new Callback();
 
-$callback->on('000', function ($payload) {
+$callback->on('000', function ($payload, $callback) {
     //
-})->on('101', function ($payload) {
+})->on('101', function ($payload, $callback) {
     //
-})->on(['code' => '000', 'phone' => '233...'], function ($payload) {
+})->on(['code' => '000', 'phone' => '233...'], function ($payload, $callback) {
     //
-})->success(function ($payload){
+})->success(function ($payload, $callback){
     // We can still chain the success or failure methods.
-})->failure(function () {
+})->failure(function ($payload, $callback) {
     //
 })->process();
 ```
@@ -240,17 +240,17 @@ $callback->amount();
 $callback->currency(); // GHS
 ```
 
-You can get all the payload array by calling the `getPayload` method without parameter.
+You can get all the payload array by calling the `payload` method without parameter.
 
 ```php
-$payload = $callback->getPayload();
+$payload = $callback->payload();
 ```
 
-You can also get any of the payload parameters by passing the name of the parameter to the `getPayload` method, for example:
+You can also get any of the payload parameters by passing the name of the parameter to the `payload` method, for example:
 
 ```php
-$transactionId = $callback->getPayload('id');
-$transactionCode = $callback->getPayload('code');
+$transactionId = $callback->payload('id');
+$transactionCode = $callback->payload('code');
 //...
 ```
 
@@ -291,6 +291,25 @@ $callback->success(function ($payload, $callback) {
 });
 ```
 
+Or you can ignore the passed instance and directly use `$this` in the closure.
+
+```php
+$callback->success(function ($payload) {
+    $message = $this->message();
+});
+```
+
+You can also completely ignore the callback parameters:
+
+```php
+$callback->success(function () {
+    $payload = $this->payload();
+    $message = $this->message();
+
+    // ...
+});
+```
+
 ### Passing other parameter(s) to the closure
 
 You can easily pass other parameters to the closure by using the PHP `use` keyword on the closure:
@@ -299,9 +318,9 @@ You can easily pass other parameters to the closure by using the PHP `use` keywo
 
 $sms = new SmsService();
 
-$callback->success(function ($payload, $callback) use ($sms) {
-    $message = $callback->message();
-    $phone = $payload['phone'];
+$callback->success(function () use ($sms) {
+    $message = $this->message();
+    $phone = $this->phone();
 
     $sms->send($message, $phone);
 });
