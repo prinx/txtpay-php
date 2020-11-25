@@ -2,6 +2,7 @@
 
 namespace Txtpay;
 
+use Prinx\Notify\Log;
 use function Prinx\Dotenv\env;
 
 /**
@@ -67,9 +68,11 @@ class MobileMoney
             ->setPrimaryCallback(env('TXTPAY_PRIMARY_CALLBACK'))
             ->setSecondaryCallback(env('TXTPAY_SECONDARY_CALLBACK'));
 
-        foreach (['amount', 'network', 'phone', 'voucherCode'] as $name) {
-            if (!is_null($$name)) {
-                $mobileMoney->{'set'.ucfirst($name)}($$name);
+        $vars = get_defined_vars();
+
+        foreach ($vars as $name => $value) {
+            if (!is_null($value)) {
+                $mobileMoney->{'set'.ucfirst($name)}($value);
             }
         }
 
@@ -98,9 +101,9 @@ class MobileMoney
         $network = $network ?? $this->network;
         $phone = $phone ?? $this->phone;
 
-        foreach (['amount', 'network', 'phone'] as $name) {
-            if (is_null($$name)) {
-                throw new \Exception('Invalid "'.$name.'" argument.');       
+        foreach (compact('amount', 'network', 'phone') as $name => $value) {
+            if (is_null($value)) {
+                throw new \Exception('Invalid argument "'.$name.'"');       
             }
         }
 
@@ -180,7 +183,7 @@ class MobileMoney
         return $response;
     }
 
-    private function generateToken()
+    protected function generateToken()
     {
         $payload = [
             'txtpay_api_id'  => $this->apiId,
@@ -245,13 +248,6 @@ class MobileMoney
         return $this->transactionId;
     }
 
-    public function log($data, $level = 'info')
-    {
-        if (!is_null($this->logger) && method_exists($this->logger, $level)) {
-            call_user_func([$this->logger, $level], $data);
-        }
-    }
-
     public function getTokenUrl()
     {
         return 'https://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/token';
@@ -260,6 +256,49 @@ class MobileMoney
     public function getPaymentUrl()
     {
         return 'http://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/payment-app/receive-money/';
+    }
+
+    public function log($data, $level = 'info')
+    {
+        $logger = $this->getLogger();
+
+        if (!is_null($logger) && method_exists($logger, $level)) {
+            call_user_func([$logger, $level], $data);
+        }
+    }
+
+    public function getLogFile()
+    {
+        return $this->logFile;
+    }
+
+    public function defaultLogFile()
+    {
+        return realpath(__DIR__.'/../../../').'/storage/logs/txtpay/mobile-money/transaction.log';
+    }
+
+    public function setLogFile($file)
+    {
+        $this->logFile = $file;
+
+        return $this;
+    }
+
+    public function setLogger($logger)
+    {
+        $this->logger = $logger;
+
+        return $this;
+    }
+
+    public function getLogger()
+    {
+        if (is_null($this->logFile)) {
+            $this->logFile = new Log;
+            $this->logFile->setFile($this->defaultLogFile());
+        }
+
+        return $this->logger;
     }
 
     public function setAccount($account)
@@ -356,18 +395,6 @@ class MobileMoney
     public function getNickname()
     {
         return $this->nickname;
-    }
-
-    public function setLogger($logger)
-    {
-        $this->logger = $logger;
-
-        return $this;
-    }
-
-    public function getLogger()
-    {
-        return $this->logger;
     }
 
     public function setVoucherCode($voucherCode)

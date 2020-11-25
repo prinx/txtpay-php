@@ -32,7 +32,7 @@ class Callback
         'amount',
         'currency',
     ];
-    
+
     protected $customPayloadNames = [
         'code'              => 'code',
         'status'            => 'status',
@@ -44,11 +44,35 @@ class Callback
         'currency'          => 'currency'
     ];
 
-    protected $defaultRequiredParameter = 'code';
+    protected $defaultConditionName = 'code';
 
+    /**
+     * Codes of the request payload that determines that the transaction was successful.
+     * 
+     * @var array
+     */
     protected $successCodes = ['000'];
 
+    /**
+     * Codes of the request payload that determines that the transaction failed.
+     *
+     * @var array
+     */
     protected $failureCodes = ['101', '102', '103', '104', '114', '909', 'default'];
+
+    /**
+     * If the transaction was successful.
+     *
+     * @var bool
+     */
+    protected $isSuccessful;
+
+    /**
+     * Callbacks
+     *
+     * @var array
+     */
+    protected $callbacks = [];
 
     public function __construct()
     {
@@ -56,73 +80,45 @@ class Callback
     }
 
     /**
-     * Add expected parameter from callback API.
+     * Register the callback if conditions match the request parameters.
      *
-     * @param string|array $param
-     * 
-     * @return $this
-     */
-    public function addRequiredParameter($param)
-    {
-        if (is_string($param)) {
-            $this->requiredParameters[] = $param;
-        } else {
-            $this->requiredParameters = array_merge($this->requiredParameters, $param);
-        }
-
-        return $this;
-    }
-
-    /**
-     * Set required expected.
-     *
-     * @param array $params
-     * 
-     * @return $this
-     */
-    public function setRequiredParameter($params)
-    {
-        $this->requiredParameters = $params;
-
-        return $this;
-    }
-
-    /**
-     * Run the callback if parameters match the request parameters.
-     *
-     * @param string|array $params String or associative array matching the request parameters.
-     *                             If string, the parameter is the defaultRequiredParamter.
+     * @param string|array $conditions String or associative array matching the request parameters.
+     *                             If string, the parameter is the defaultConditionName.
      * @param Closure $callback
      * 
      * @return $this
      */
-    public function on($params, Closure $callback)
+    public function on($conditions, Closure $callback)
     {
-        if (is_string($params)) {
-            $params = [$this->defaultRequiredParameter => $params];
+        if (is_string($conditions)) {
+            $conditions = [$this->defaultConditionName => $conditions];
         }
 
         $payload = $this->getPayload();
         $match = true;
 
-        foreach ($params as $key => $value) {
-            if (!isset($payload[$key]) || $payload[$key] != $value) {
+        foreach ($conditions as $key => $value) {
+            if (!isset($payload[$key])) {
+                throw new \RuntimeException('Unknown key '.$key.' in the conditions passed to the "on" method.');
+            }
+  
+            if ($payload[$key] != $value) {
                 $match = false;
                 break;
             }
         }
 
         if ($match) {
-            call_user_func($callback, $payload, $this);
+            $this->register($callback);
         }
 
         return $this;
     }
 
     /**
-     * Run callback if the transaction is successful.
+     * Register callback if the transaction is successful.
      * 
-     * The successful request is determined by the code of the request.
+     * The successful transaction is determined by the code of the request.
      *
      * @param Closure $callback
      * 
@@ -130,8 +126,8 @@ class Callback
      */
     public function success(Closure $callback)
     {
-        if (in_array($this->getPayload($this->defaultRequiredParameter), $this->succesCodes)) {
-            call_user_func($callback, $this->getPayload(), $this);
+        if (in_array($this->getPayload($this->defaultConditionName), $this->successCodes)) {
+            $this->register($callback);
         }
 
         return $this;
@@ -148,8 +144,8 @@ class Callback
      */
     public function failure(Closure $callback)
     {
-        if (in_array($this->getPayload($this->defaultRequiredParameter), $this->failureCodes)) {
-            call_user_func($callback, $this->getPayload(), $this);
+        if (in_array($this->getPayload($this->defaultConditionName), $this->failureCodes)) {
+            $this->register($callback);
         }
 
         return $this;
@@ -164,29 +160,46 @@ class Callback
      */
     public function always(Closure $callback)
     {
-        call_user_func($callback, $this->getPayload(), $this);
+        return $this->register($callback);
+    }
+
+    /**
+     * Register callback.
+     *
+     * @param Closure $callback
+     * 
+     * @return $this
+     */
+    public function register(Closure $callback)
+    {
+        $this->callbacks[] = $callback;
 
         return $this;
     }
 
     /**
-     * Add status codes.
+     * Run the registered callbacks against the callback request.
      *
-     * @param string|string[] $code Code or array of codes
+     * @param Closure $callback Optional callback that will be run after all the callbacks have been run.
      * 
      * @return $this
      */
-    public function addSuccessCode($code)
+    public function process(Closure $callback = null)
     {
-        if (!is_array($code)) {
-            $code = [$code];
+        if ($callback) {
+            $this->register($callback);
         }
 
-        $this->succesCodes = array_unique(array_merge($this->succesCodes, $code));
-
-        $this->failureCodes = $this->removeFromArray($this->failureCodes, $code);
+        $this->runCallbacks();
 
         return $this;
+    }
+
+    public function runCallbacks()
+    {
+        foreach ($this->callbacks as $callback) {
+            call_user_func_array($callback, [$this->getPayload(), $this]);
+        }
     }
 
     /**
@@ -200,26 +213,6 @@ class Callback
     }
 
     /**
-     * Set failure code.
-     *
-     * @param string|string[] $code Code or array of codes
-     * 
-     * @return $this
-     */
-    public function addFailureCode($code)
-    {
-        if (!is_array($code)) {
-            $code = [$code];
-        }
-
-        $this->failureCodes = array_unique(array_merge($this->failureCodes, $code));
-
-        $this->successCodes = $this->removeFromArray($this->successCodes, $code);
-
-        return $this;
-    }
-
-    /**
      * Failure codes.
      *
      * @return array
@@ -227,21 +220,6 @@ class Callback
     public function getFailureCodes()
     {
         return $this->failureCodes;
-    }
-
-    /**
-     * Remove value(s) from array.
-     *
-     * @param array $array
-     * @param string|array $toRemove
-     * 
-     * @return array
-     */
-    public function removeFromArray($array, $toRemove)
-    {
-        $toRemove = is_string($toRemove) ? [$toRemove] : $toRemove;
-
-        return array_diff($array, $toRemove);
     }
 
     public function captureRequest()
@@ -268,6 +246,11 @@ class Callback
         }
 
         return $this;
+    }
+
+    public function getPayload($attribute = null)
+    {
+        return $attribute ? $this->payload[$attribute] ?? $this->originalPayload[$attribute] ?? null : $this->payload;
     }
 
     public function validatePayload($payload)
@@ -310,6 +293,23 @@ class Callback
         SlackLog::log($message, $level);
     }
 
+    public function isSuccessful()
+    {
+        if (is_null($this->isSuccessful)) {
+            $this->isSuccessful = in_array(
+                $this->getPayload($this->defaultConditionName),
+                $this->successCodes
+            );
+        }
+
+        return $this->isSuccessful;
+    }
+    
+    public function hasFailed()
+    {
+        return !$this->isSuccessful();
+    }
+
     public function messages($code = null, $transactionId = null)
     {
         $messages = [
@@ -326,14 +326,14 @@ class Callback
         return $code ? $messages[$code] ?? $messages['default'] : $messages;
     }
 
+    public function message()
+    {
+        return $this->messages($this->getPayload('code'), $this->getPayload('id'));
+    }
+
     public function respond($message)
     {
         echo $message;
-    }
-
-    public function getPayload($attribute = null)
-    {
-        return $attribute ? $this->payload[$attribute] ?? $this->originalPayload[$attribute] ?? null : $this->payload;
     }
 
     public function callbackLog()
@@ -354,7 +354,7 @@ class Callback
     public function logFolder($append = '')
     {
         if (is_null($this->logFolder)) {
-            $this->logFolder = realpath(__DIR__.'/../../../').'storage/logs/txtpay/mobile-money/'.$append;
+            $this->logFolder = realpath(__DIR__.'/../../../').'/storage/logs/txtpay/mobile-money/callback/'.$append;
         }
 
         return $this->logFolder;
@@ -365,5 +365,45 @@ class Callback
         $this->logFolder = $folder;
         
         return $this;
+    }
+
+    public function id()
+    {
+        return $this->getPayload('id');
+    }
+
+    public function phone()
+    {
+        return $this->getPayload('phone');
+    }
+
+    public function amount()
+    {
+        return $this->getPayload('amount');
+    }
+
+    public function code()
+    {
+        return $this->getPayload('code');
+    }
+
+    public function status()
+    {
+        return $this->getPayload('status');
+    }
+
+    public function details()
+    {
+        return $this->getPayload('details');
+    }
+
+    public function network()
+    {
+        return $this->getPayload('network');
+    }
+
+    public function currency()
+    {
+        return $this->getPayload('currency');
     }
 }
