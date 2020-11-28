@@ -29,11 +29,9 @@ class SlackLog
         }
 
         try {
-            $client = static::$httpClient ?: static::$httpClient = HttpClient::create();
-    
-            $client->request('POST', $url, [
+            static::logger()->request('POST', $url, [
                 'json' => [
-                    'text' => '['.strtoupper($level).'] ['.date('D, d m Y, H:i:s')."]\n".$message
+                    'text' => '['.strtoupper($level).'] ['.date('D, d m Y, H:i:s')."]\n".$message,
                 ],
             ]);
         } catch (HttpExceptionInterface $th) {
@@ -45,5 +43,10 @@ class SlackLog
         } catch (\Throwable $th) {
             //
         }
+    }
+
+    public static function logger()
+    {
+        return static::$httpClient ?: static::$httpClient = HttpClient::create();
     }
 }
