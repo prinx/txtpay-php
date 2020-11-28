@@ -3,6 +3,9 @@
 namespace Txtpay;
 
 use Prinx\Notify\Log;
+use Symfony\Component\HttpClient\HttpClient;
+use Throwable;
+use Txtpay\Contracts\MobileMoneyInterface;
 use function Prinx\Dotenv\env;
 
 /**
@@ -11,7 +14,7 @@ use function Prinx\Dotenv\env;
  * @author Kenneth Okeke <okekekenchi0802@gmail.com>
  * @author Prince Dorcis <princedorcis@gmail.com>
  */
-class MobileMoney
+class MobileMoney implements MobileMoneyInterface
 {
     protected $primaryCallback;
     protected $secondaryCallback;
@@ -26,22 +29,9 @@ class MobileMoney
     protected $voucherCode;
     protected $phone;
     protected $amount;
-
-    public function __construct(
-        $account = '',
-        $network = '',
-        $apiId = '',
-        $apiKey = '',
-        $primaryCallback = '',
-        $secondaryCallback = ''
-    ) {
-        $this->account = $account;
-        $this->network = $network;
-        $this->apiId = $apiId;
-        $this->apiKey = $apiKey;
-        $this->primaryCallback = $primaryCallback;
-        $this->secondaryCallback = $secondaryCallback;
-    }
+    protected $envCredententialsPrefix = '';
+    protected $envCredententialsSuffix = '';
+    protected $configured = false;
 
     /**
      * Automatically discover and set configurations in the .env file.
@@ -50,30 +40,35 @@ class MobileMoney
      * @param string $phone
      * @param string $network
      * @param string $voucherCode
-     * 
+     *
      * @return $this
      */
-    public function autoConfig(
+    public function configure(
         $amount = null,
         $phone = null,
         $network = null,
         $voucherCode = null
     ) {
-        $this->setApiId(env('TXTPAY_ID'))
-            ->setApiKey(env('TXTPAY_KEY'))
-            ->setAccount(env('TXTPAY_ACCOUNT'))
-            ->setNickname(env('TXTPAY_NICKNAME'))
-            ->setDescription(env('TXTPAY_DESCRIPTION'))
-            ->setPrimaryCallback(env('TXTPAY_PRIMARY_CALLBACK'))
-            ->setSecondaryCallback(env('TXTPAY_SECONDARY_CALLBACK'));
+        $prefix = $this->envCredententialsPrefix;
+        $suffix = $this->envCredententialsSuffix;
+
+        $this->apiId = env($prefix.'TXTPAY_ID'.$suffix);
+        $this->apiKey = env($prefix.'TXTPAY_KEY'.$suffix);
+        $this->account = env($prefix.'TXTPAY_ACCOUNT'.$suffix);
+        $this->nickname = env($prefix.'TXTPAY_NICKNAME'.$suffix);
+        $this->description = env($prefix.'TXTPAY_DESCRIPTION'.$suffix);
+        $this->primaryCallback = env($prefix.'TXTPAY_PRIMARY_CALLBACK'.$suffix);
+        $this->secondaryCallback = env($prefix.'TXTPAY_SECONDARY_CALLBACK'.$suffix);
 
         $vars = get_defined_vars();
 
         foreach ($vars as $name => $value) {
             if ($value) {
-                $this->{'set'.ucfirst($name)}($value);
+                $this->{$name} = $value;
             }
         }
+
+        $this->configured = true;
 
         return $this;
     }
@@ -85,7 +80,7 @@ class MobileMoney
      * @param string $phone
      * @param string $network
      * @param string $voucherCode
-     * 
+     *
      * @return stdClass
      */
     public function request(
@@ -93,16 +88,52 @@ class MobileMoney
         $phone = null,
         $network = null,
         $voucherCode = null
-    ) {
+    ) {        
+        if (!$this->configured) {
+            $this->configure();
+        }
+
+        $url = $this->getPaymentUrl();
+        $headers = $this->momoRequestHeaders();
+        $payload = $this->momoRequestPayload($amount, $phone, $network, $voucherCode);
+
+        $response = $this->sendRequest($url, $payload, $headers);
+
+        if ($response->isSuccessful) {
+            $response->status = $response->content->status ?? null;
+            $response->transactionId = $this->getTransactionId();
+            $toLog = (array) $response;
+            unset($toLog['developed_by']);
+        } else {
+            $toLog = (array) $response;
+        }
+
+        $this->log('Response Mobile money request to '.$payload['recipient'].':');
+        $this->log($toLog);
+
+        return $response;
+    }
+
+    public function momoRequestHeaders()
+    {
         $token = $this->generateToken();
 
+        $headers =  [
+            'Authorization' => 'Bearer '.$token
+        ];
+
+        return $headers;
+    }
+
+    public function momoRequestPayload($amount, $phone, $network, $voucherCode)
+    {
         $amount = $amount ?? $this->amount;
         $network = $network ?? $this->network;
         $phone = $phone ?? $this->phone;
 
         foreach (compact('amount', 'network', 'phone') as $name => $value) {
             if (is_null($value)) {
-                throw new \Exception('Invalid argument "'.$name.'"');       
+                throw new \Exception('Invalid argument "'.$name.'"');
             }
         }
 
@@ -113,7 +144,7 @@ class MobileMoney
             'amount'             => $amount,
             'nickname'           => $this->nickname,
             'description'        => $this->description,
-            'reference'          => $this->transactionId(),
+            'reference'          => $this->getTransactionId(),
             'recipient'          => $phone,
         ];
 
@@ -121,120 +152,62 @@ class MobileMoney
             $payload['voucher-code'] = $voucherCode;
         }
 
-        $ch = curl_init();
-
-        curl_setopt_array($ch, [
-            CURLOPT_URL            => $this->paymentUrl(),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING       => '',
-            CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT        => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST  => 'POST',
-            CURLOPT_POSTFIELDS     => json_encode($payload),
-            CURLOPT_HTTPHEADER     => [
-                'Content-Type: application/json',
-                'Authorization: Bearer '.$token,
-            ],
-        ]);
-
-        $this->log("Response Mobile money request to {$phone}:");
-
-        $result = curl_exec($ch);
-
-        if (!$result) {
-            $data = [
-                'successful' => false,
-                'error'      => curl_error($ch),
-                'response'   => $result,
-            ];
-
-            $this->log($data);
-            curl_close($ch);
-
-            return (object) $data;
-        }
-
-        curl_close($ch);
-
-        $response = json_decode($result);
-
-        if (!$response) {
-            $data = [
-                'successful' => false,
-                'error'      => 'Invalid JSON response',
-                'response'   => $response,
-            ];
-
-            $this->log($data);
-
-            return (object) $data;
-        }
-
-        $response->successful = true;
-        $response->status = $response->status ?? null;
-        $response->transactionId = $this->transactionId();
-
-        $log = (array) $response;
-        unset($log['developed_by']);
-        $this->log($log);
-
-        return $response;
+        return $payload;
     }
 
-    protected function generateToken()
+    public function generateToken()
     {
+        if (!$this->configured) {
+            $this->configure();
+        }
+
         $payload = [
             'txtpay_api_id'  => $this->apiId,
             'txtpay_api_key' => $this->apiKey,
         ];
+        
+        $response = $this->sendRequest($this->getTokenUrl(), $payload);
 
-        $ch = curl_init();
-
-        curl_setopt_array($ch, [
-            CURLOPT_URL            => $this->tokenUrl(),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING       => '',
-            CURLOPT_MAXREDIRS      => 10,
-            CURLOPT_TIMEOUT        => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST  => 'POST',
-            CURLOPT_POSTFIELDS     => json_encode($payload),
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-            CURLOPT_HEADER         => 0,
-        ]);
-
-        $response = curl_exec($ch);
-
-        if (!$response) {
-            $error = curl_error($ch);
-            $this->log('Error: '.$error);
-        }
-
-        curl_close($ch);
-
-        $result = json_decode($response);
-
-        if (!$result) {
-            $this->log('TxtMomoService Generate Token: Invalid JSON response:');
+        if (!$response->isSuccessful || !isset($response->content->data->token)) {
+            $this->log('Error when generating token:');
             $this->log($response);
-            throw new \Exception('TxtMomoService Generate Token: Invalid JSON response.');
+
+            throw new \Exception($response->error);
         }
 
-        if (!isset($result->data->token)) {
-            $this->log('TxtMomoService Generate Token: Response not expected:');
-            $this->log($response);
-            throw new \Exception('TxtMomoService Generate Token: Response not expected');
-        }
-
-        $this->log('TxtMomoService Generate Token successfully.');
-
-        return $result->data->token;
+        return $response->content->data->token;
     }
 
-    public function transactionId()
+    public function sendRequest($url, $payload, $headers = [])
+    {
+        try {
+            $client = HttpClient::create([
+                'max_redirects' => 10,
+            ]);
+
+            $response = $client->request('POST', $url, [
+                'json' => $payload,
+                'headers' => $headers,
+            ]);
+
+            $content = $response->toArray();
+
+            $data = [
+                'isSuccessful' => true,
+                'content'   => $content,
+            ];
+        } catch (Throwable $th) {
+            $data = [
+                'isSuccessful' => false,
+                'error'      => $th->getMessage(),
+                'response'   => $response->getContent(false),
+            ];
+        }
+
+        return  json_decode(json_encode($data));
+    }
+
+    public function getTransactionId()
     {
         if (!isset($this->transactionId)) {
             $now = date('YmdHi');
@@ -248,31 +221,31 @@ class MobileMoney
         return $this->transactionId;
     }
 
-    public function tokenUrl()
+    public function getTokenUrl()
     {
         return 'https://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/token';
     }
 
-    public function paymentUrl()
+    public function getPaymentUrl()
     {
         return 'http://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/payment-app/receive-money/';
     }
 
     public function log($data, $level = 'info')
     {
-        $logger = $this->logger();
+        $logger = $this->getLogger();
 
         if (!is_null($logger) && method_exists($logger, $level)) {
             call_user_func([$logger, $level], $data);
         }
     }
 
-    public function logFile()
+    public function getLogFile()
     {
         return $this->logFile;
     }
 
-    public function defaultLogFile()
+    public function getDefaultLogFile()
     {
         return realpath(__DIR__.'/../../../').'/storage/logs/txtpay/mobile-money/transaction.log';
     }
@@ -291,24 +264,17 @@ class MobileMoney
         return $this;
     }
 
-    public function logger()
+    public function getLogger()
     {
         if (is_null($this->logFile)) {
             $this->logFile = new Log;
-            $this->logFile->setFile($this->defaultLogFile());
+            $this->logFile->setFile($this->getDefaultLogFile());
         }
 
         return $this->logger;
     }
 
-    public function setAccount($account)
-    {
-        $this->account = $account;
-
-        return $this;
-    }
-
-    public function account()
+    public function getAccount()
     {
         return $this->account;
     }
@@ -320,31 +286,17 @@ class MobileMoney
         return $this;
     }
 
-    public function network()
+    public function getNetwork()
     {
         return $this->network;
     }
 
-    public function setApiId($apiId)
-    {
-        $this->apiId = $apiId;
-
-        return $this;
-    }
-
-    public function apiId()
+    public function getApiId()
     {
         return $this->apiId;
     }
 
-    public function setApiKey($apiKey)
-    {
-        $this->apiKey = $apiKey;
-
-        return $this;
-    }
-
-    public function apiKey()
+    public function getApiKey()
     {
         $this->apiKey;
     }
@@ -356,7 +308,7 @@ class MobileMoney
         return $this;
     }
 
-    public function primaryCallback()
+    public function getPrimaryCallback()
     {
         return $this->primaryCallback;
     }
@@ -368,7 +320,7 @@ class MobileMoney
         return $this;
     }
 
-    public function secondaryCallback()
+    public function getSecondaryCallback()
     {
         return $this->secondaryCallback;
     }
@@ -380,7 +332,7 @@ class MobileMoney
         return $this;
     }
 
-    public function description()
+    public function getDescription()
     {
         return $this->description;
     }
@@ -392,7 +344,7 @@ class MobileMoney
         return $this;
     }
 
-    public function nickname()
+    public function getNickname()
     {
         return $this->nickname;
     }
@@ -404,7 +356,7 @@ class MobileMoney
         return $this;
     }
 
-    public function voucherCode()
+    public function getVoucherCode()
     {
         return $this->voucherCode;
     }
@@ -416,7 +368,7 @@ class MobileMoney
         return $this;
     }
 
-    public function amount()
+    public function getAmount()
     {
         return $this->amount;
     }
@@ -428,8 +380,22 @@ class MobileMoney
         return $this;
     }
 
-    public function phone()
+    public function getPhone()
     {
         return $this->phone;
+    }
+
+    public function setEnvCredententialsPrefix(string $prefix)
+    {
+        $this->envCredententialsPrefix = $prefix;
+
+        return $this;
+    }
+    
+    public function setEnvCredententialsSuffix(string $suffix)
+    {
+        $this->envCredententialsSuffix = $suffix;
+
+        return $this;
     }
 }

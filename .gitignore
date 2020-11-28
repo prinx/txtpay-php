@@ -1,1 +1,4 @@
+.env
+.env.backup
+.php_cs.cache
 vendor

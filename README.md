@@ -5,7 +5,7 @@ TXTGHANA Payment Gateway PHP SDK
 ## Installation
 
 ```shell
-composer require txtghana/txtpay
+composer require prinx/txtpay
 ```
 
 ## Usage
@@ -31,7 +31,7 @@ The primary and secondary callbacks are URL where `TXTPAY` will send the result 
 ### Request a payment
 
 ```php
-$payment = (new MobileMoney)->autoConfig();
+$payment = new MobileMoney;
 
 $amount = 1; // 1 GHC
 $phone = '233...';
@@ -44,25 +44,25 @@ The `autoConfig` method will Automatically retrieve the configuration in the `.e
 
 #### Voucher code
 
-Some networks (VODAFONE) require the user to generate some extra code called voucher code. This code can be easily passed to the request either by setting it on the callback or passing it to the `request` method.
+Some networks (typically VODAFONE) require the user to generate a voucher code. This code can be easily passed to the request:
 
 ```php
-$payment->setVoucherCode($voucherCode);
-$request = $payment->request($amount, $phone, $network);
+$request = $payment->request($amount, $phone, $network, $voucherCode);
 
 // or
 
-$request = $payment->request($amount, $phone, $network, $voucherCode);
+$payment->setVoucherCode($voucherCode);
+$request = $payment->request($amount, $phone, $network);
 ```
 
 #### Mobile money request response
 
-The mobile money request will Automatically return a response. You can determine from the response if the request was successful or not.
+The mobile money request will automatically return a response from which you can determine if the request is being processed or not.
 
 ```php
 $request = $payment->request($amount, $phone, $network);
 
-if ($request->successful) {
+if ($request->isSuccessful) {
     $status = $request->status;
 
     // ...
@@ -85,7 +85,7 @@ To process the callback, you first need to create a callback instance:
 // callback.php
 use Txtpay\Callback;
 
-$callback = new Callback();
+$callback = new Callback;
 ```
 
 If the callback route is handled by a controller:
@@ -102,7 +102,7 @@ class MobileMoneyCallbackController extends Controller
 {
     public function processCallback()
     {
-        $callback = new Callback();
+        $callback = new Callback;
     }
 }
 ```
@@ -119,7 +119,7 @@ $callback->success(function ($payload, $callback) {
 });
 ```
 
-Now, run Everything, by calling the `process` method on the callback.
+Now, run everything, by calling the `process` method on the callback.
 
 ```php
 $callback->process();
@@ -138,10 +138,10 @@ $callback->success(function ($payload, $callback) {
 ```
 
 >TIP
-In case you have only one callback function that will be run whether the transaction was successful or not, you can simply pass the function to the process method:
+In case you have only one callback function that will be run whether the transaction is successful or not, you can simply pass the function to the process method:
 
 ```php
-$callback = new Callback();
+$callback = new Callback;
 
 $callback->process(function ($payload, $callback) {
     //
@@ -150,7 +150,7 @@ $callback->process(function ($payload, $callback) {
 
 #### Successful transaction
 
-The code of the transaction determines if the transaction is successful or has failed. By default, the successful transaction codes are in the array returned by `$callback->successCodes()`. You can decide (for any reason it may be) to consider a failure code as success code by adding it to the success codes with the `$callback->addSuccessCode($code)` method.
+The code of the transaction determines if the transaction is successful or has failed. By default, the successful transaction codes are in the array returned by `$callback->getSuccessCodes()`. You can decide (for any reason it may be) to consider a failure code as success code by adding it to the success codes with the `$callback->addSuccessCode($code)` method.
 
 #### The `on` method
 
@@ -161,7 +161,7 @@ A string can be passed as condition, then it will be considered as the code sent
 ```php
 use Txtpay\Callback;
 
-$callback = new Callback();
+$callback = new Callback;
 
 $callback->on('000', function ($payload, $callback) {
     //
@@ -176,9 +176,9 @@ $callback->on('000', function ($payload, $callback) {
 })->process();
 ```
 
-The Callback class implements the [fluent interface](https://wikipedia.org/wiki/Fluent_interface). You can chain the `on`, `success`, `failure` methods (in any order).
+The Callback class implements the [fluent interface](https://wikipedia.org/wiki/Fluent_interface). You can chain most of its methods (like the `on`, `success`, `failure` methods), in any order.
 
-The callback will be run in the order they were registered.
+The callbacks will be run in the order they were registered.
 
 ### The payload
 
@@ -189,13 +189,13 @@ A payload is sent to the callback URL. It contains 8 parameters:
 The code of the transaction.
 
 ```php
-$callback->code();
+$callback->getCode();
 ```
 
 #### status
 
 ```php
-$callback->status(); // approved, declined...
+$callback->getStatus(); // approved, declined...
 ```
 
 #### details
@@ -203,7 +203,7 @@ $callback->status(); // approved, declined...
 The detail message of the status.
 
 ```php
-$callback->details();
+$callback->getDetails();
 ```
 
 #### id
@@ -211,13 +211,13 @@ $callback->details();
 The transaction ID.
 
 ```php
-$callback->id();
+$callback->getId();
 ```
 
 #### network
 
 ```php
-$callback->network(); // MTN, AIRTEL, VODAFONE, ...
+$callback->getNetwork(); // MTN, AIRTEL, VODAFONE, ...
 ```
 
 #### phone
@@ -225,32 +225,32 @@ $callback->network(); // MTN, AIRTEL, VODAFONE, ...
 The phone number.
 
 ```php
-$callback->phone(); // 233...
+$callback->getPhone(); // 233...
 ```
 
 #### amount
 
 ```php
-$callback->amount();
+$callback->getAmount();
 ```
 
 #### currency
 
 ```php
-$callback->currency(); // GHS
+$callback->getCurrency(); // GHS
 ```
 
-You can get all the payload array by calling the `payload` method without parameter.
+You can get all the payload array by calling the `getPayload` method without parameter.
 
 ```php
-$payload = $callback->payload();
+$payload = $callback->getPayload();
 ```
 
-You can also get any of the payload parameters by passing the name of the parameter to the `payload` method, for example:
+You can also get any of the payload parameters by passing the name of the parameter to the `getPayload` method, for example:
 
 ```php
-$transactionId = $callback->payload('id');
-$transactionCode = $callback->payload('code');
+$transactionId = $callback->getPayload('id');
+$transactionCode = $callback->getPayload('code');
 //...
 ```
 
@@ -259,7 +259,7 @@ $transactionCode = $callback->payload('code');
 You can get the message associated to the request by calling the `message` method of the callback instance.
 
 ```php
-$payload = $callback->message();
+$payload = $callback->getMessage();
 ```
 
 The message is associated to the code in the payload.
@@ -287,7 +287,7 @@ The callback instance is automatically passed to the closure. You can then use i
 
 ```php
 $callback->success(function ($payload, $callback) {
-    $message = $callback->message();
+    $message = $callback->getMessage();
 });
 ```
 
@@ -295,7 +295,7 @@ Or you can ignore the passed instance and directly use `$this` in the closure.
 
 ```php
 $callback->success(function ($payload) {
-    $message = $this->message();
+    $message = $this->getMessage();
 });
 ```
 
@@ -303,8 +303,8 @@ You can also completely ignore the callback parameters:
 
 ```php
 $callback->success(function () {
-    $payload = $this->payload();
-    $message = $this->message();
+    $payload = $this->getPayload();
+    $message = $this->getMessage();
 
     // ...
 });
@@ -319,8 +319,8 @@ You can easily pass other parameters to the closure by using the PHP `use` keywo
 $sms = new SmsService();
 
 $callback->success(function () use ($sms) {
-    $message = $this->message();
-    $phone = $this->phone();
+    $message = $this->getMessage();
+    $phone = $this->getPhone();
 
     $sms->send($message, $phone);
 });

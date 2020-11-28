@@ -4,6 +4,7 @@ namespace Txtpay;
 
 use Closure;
 use Prinx\Notify\Log;
+use Txtpay\Contracts\CallbackInterface;
 
 /**
  * TXTGHANA Payment Gateway SDK.
@@ -11,7 +12,7 @@ use Prinx\Notify\Log;
  * @author Kenneth Okeke <okekekenchi0802@gmail.com>
  * @author Prince Dorcis <princedorcis@gmail.com>
  */
-class Callback
+class Callback implements CallbackInterface
 {
     /**
      * Logger.
@@ -48,7 +49,7 @@ class Callback
 
     /**
      * Codes of the request payload that determines that the transaction was successful.
-     * 
+     *
      * @var array
      */
     protected $successCodes = ['000'];
@@ -58,14 +59,14 @@ class Callback
      *
      * @var array
      */
-    protected $failureCodes = ['101', '102', '103', '104', '114', '909', 'default'];
+    protected $failureCodes = ['101', '102', '103', '104', '114', '600', '909', 'default'];
 
     /**
      * If the transaction was successful.
      *
      * @var bool
      */
-    protected $successful;
+    protected $isSuccessful;
 
     /**
      * Callbacks
@@ -85,7 +86,7 @@ class Callback
      * @param string|array $conditions String or associative array matching the request parameters.
      *                             If string, the parameter is the defaultConditionName.
      * @param Closure $callback
-     * 
+     *
      * @return $this
      */
     public function on($conditions, Closure $callback)
@@ -94,7 +95,7 @@ class Callback
             $conditions = [$this->defaultConditionName => $conditions];
         }
 
-        $payload = $this->payload();
+        $payload = $this->getPayload();
         $match = true;
 
         foreach ($conditions as $key => $value) {
@@ -117,16 +118,16 @@ class Callback
 
     /**
      * Register callback if the transaction is successful.
-     * 
+     *
      * The successful transaction is determined by the code of the request.
      *
      * @param Closure $callback
-     * 
+     *
      * @return $this
      */
     public function success(Closure $callback)
     {
-        if (in_array($this->payload($this->defaultConditionName), $this->successCodes)) {
+        if (in_array($this->getPayload($this->defaultConditionName), $this->successCodes)) {
             $this->register($callback);
         }
 
@@ -135,16 +136,16 @@ class Callback
 
     /**
      * Run callback if the transaction has failed.
-     * 
+     *
      * The failed request is determined by the code of the request.
      *
      * @param Closure $callback
-     * 
+     *
      * @return $this
      */
     public function failure(Closure $callback)
     {
-        if (in_array($this->payload($this->defaultConditionName), $this->failureCodes)) {
+        if (in_array($this->getPayload($this->defaultConditionName), $this->failureCodes)) {
             $this->register($callback);
         }
 
@@ -155,7 +156,7 @@ class Callback
      * Run callback whether the transaction is successful or not.
      *
      * @param Closure $callback
-     * 
+     *
      * @return $this
      */
     public function always(Closure $callback)
@@ -167,7 +168,7 @@ class Callback
      * Register callback.
      *
      * @param Closure $callback
-     * 
+     *
      * @return $this
      */
     public function register(Closure $callback)
@@ -181,7 +182,7 @@ class Callback
      * Run the registered callbacks against the callback request.
      *
      * @param Closure $callback Optional callback that will be run after all the callbacks have been run.
-     * 
+     *
      * @return $this
      */
     public function process(Closure $callback = null)
@@ -200,7 +201,7 @@ class Callback
         foreach ($this->callbacks as $callback) {
             $callback = $callback->bindTo($this);
 
-            call_user_func_array($callback, [$this->payload(), $this]);
+            call_user_func_array($callback, [$this->getPayload(), $this]);
         }
     }
 
@@ -209,7 +210,7 @@ class Callback
      *
      * @return array
      */
-    public function successCodes()
+    public function getSuccessCodes()
     {
         return $this->successCodes;
     }
@@ -219,7 +220,7 @@ class Callback
      *
      * @return array
      */
-    public function failureCodes()
+    public function getFailureCodes()
     {
         return $this->failureCodes;
     }
@@ -250,7 +251,7 @@ class Callback
         return $this;
     }
 
-    public function payload($attribute = null)
+    public function getPayload($attribute = null)
     {
         return $attribute ? $this->payload[$attribute] ?? $this->originalPayload[$attribute] ?? null : $this->payload;
     }
@@ -262,7 +263,7 @@ class Callback
                 $this->log(
                     "Missing parameters \"{$param}\" in the request.\n".
                     'Payload: '.json_encode($payload, JSON_PRETTY_PRINT),
-                    $this->failureLog()
+                    $this->failureLogFile()
                 );
 
                 exit('Some parameters are missing in the request payload.');
@@ -273,21 +274,21 @@ class Callback
     public function logPayload()
     {
         $this->log(
-            'Callback Received for momo transaction to '.$this->payload('phone').
-            "\nPayload: ".json_encode($this->payload(), JSON_PRETTY_PRINT),
-            $this->callbackLog()
+            'Callback Received for momo transaction to '.$this->getPayload('phone').
+            "\nPayload: ".json_encode($this->getPayload(), JSON_PRETTY_PRINT),
+            $this->callbackLogFile()
         );
     }
 
-    public function logger()
+    public function getLogger()
     {
         return $this->logger ?? $this->logger = new Log;
     }
 
     public function log($message, $file = '', $level = 'info')
     {
-        if ($file && $this->logger()) {
-            $this->logger()
+        if ($file && $this->getLogger()) {
+            $this->getLogger()
                 ->setFile($file)
                 ->{$level}($message);
         }
@@ -295,24 +296,24 @@ class Callback
         SlackLog::log($message, $level);
     }
 
-    public function successful()
+    public function isSuccessful()
     {
-        if (is_null($this->successful)) {
-            $this->successful = in_array(
-                $this->payload($this->defaultConditionName),
+        if (is_null($this->isSuccessful)) {
+            $this->isSuccessful = in_array(
+                $this->getPayload($this->defaultConditionName),
                 $this->successCodes
             );
         }
 
-        return $this->successful;
+        return $this->isSuccessful;
     }
 
     public function failed()
     {
-        return !$this->successful();
+        return !$this->isSuccessful();
     }
 
-    public function messages($code = null, $transactionId = null)
+    public function getMessages($code = null, $transactionId = null)
     {
         $messages = [
             '000'     => 'Transaction successful. Your transaction ID is '.$transactionId,
@@ -321,6 +322,7 @@ class Callback
             '103'     => 'Transaction failed. Wrong PIN. Transaction timed out.',
             '104'     => 'Transaction failed. Transaction declined',
             '114'     => 'Transaction failed. Invalid voucher',
+            '600'     => 'Transaction failed. Can not process request',
             '909'     => 'Transaction failed. Duplicate transaction id.',
             'default' => 'Transaction failed.',
         ];
@@ -328,9 +330,9 @@ class Callback
         return $code ? $messages[$code] ?? $messages['default'] : $messages;
     }
 
-    public function message()
+    public function getMessage()
     {
-        return $this->messages($this->payload('code'), $this->payload('id'));
+        return $this->getMessages($this->getPayload('code'), $this->getPayload('id'));
     }
 
     public function respond($message)
@@ -338,17 +340,17 @@ class Callback
         echo $message;
     }
 
-    public function callbackLog()
+    public function callbackLogFile()
     {
         return $this->logFolder('callback.log');
     }
 
-    public function successLog()
+    public function successLogFile()
     {
         return $this->logFolder('success.log');
     }
 
-    public function failureLog()
+    public function failureLogFile()
     {
         return $this->logFolder('error.log');
     }
@@ -369,43 +371,43 @@ class Callback
         return $this;
     }
 
-    public function id()
+    public function getId()
     {
-        return $this->payload('id');
+        return $this->getPayload('id');
     }
 
-    public function phone()
+    public function getPhone()
     {
-        return $this->payload('phone');
+        return $this->getPayload('phone');
     }
 
-    public function amount()
+    public function getAmount()
     {
-        return $this->payload('amount');
+        return $this->getPayload('amount');
     }
 
-    public function code()
+    public function getCode()
     {
-        return $this->payload('code');
+        return $this->getPayload('code');
     }
 
-    public function status()
+    public function getStatus()
     {
-        return $this->payload('status');
+        return $this->getPayload('status');
     }
 
-    public function details()
+    public function getDetails()
     {
-        return $this->payload('details');
+        return $this->getPayload('details');
     }
 
-    public function network()
+    public function getNetwork()
     {
-        return $this->payload('network');
+        return $this->getPayload('network');
     }
 
-    public function currency()
+    public function getCurrency()
     {
-        return $this->payload('currency');
+        return $this->getPayload('currency');
     }
 }
