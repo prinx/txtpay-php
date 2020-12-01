@@ -88,11 +88,9 @@ class CallbackTest extends TestCase
     {
         $test = $this;
     
-        return function ($payload, $callback) use ($test, $type) {
-            $test->assertTrue(is_array($payload), "Inject payload must be an array in the success callback in closure of type/code {$type}");
+        return function ($callback) use ($test, $type) {
             $test->assertTrue($callback instanceof Callback, "Inject callback must be the callback instance in closure of type/code {$type}");
             $test->assertSame($this, $callback, "\$this must be equal to \$callback in closure of type/code {$type}");
-            $test->assertEquals($payload, $callback->getPayload(), "Invalid payload passed to closure of type/code {$type}");
         };
     }
 }

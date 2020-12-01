@@ -2,13 +2,13 @@
 
 namespace Txtpay\Laravel;
 
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 use Txtpay\Callback;
 use Txtpay\Contracts\CallbackInterface;
 use Txtpay\Contracts\MobileMoneyInterface;
 use Txtpay\MobileMoney;
 
-class RepositoryServiceProvider extends ServiceProvider
+class ServiceProvider extends BaseServiceProvider
 {
     /**
      * Register services.

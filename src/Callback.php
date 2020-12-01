@@ -236,7 +236,7 @@ class Callback implements CallbackInterface
         foreach ($this->callbacks as $callback) {
             $callback = $callback->bindTo($this);
 
-            call_user_func_array($callback, [$this->getPayload(), $this]);
+            call_user_func_array($callback, [$this]);
         }
     }
 
