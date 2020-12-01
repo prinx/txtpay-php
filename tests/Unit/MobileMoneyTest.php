@@ -40,6 +40,28 @@ class MobileMoneyTest extends TestCase
         $this->runConfigTest('PREFIX_', '_SUFFIX');
     }
 
+    /**
+     * Test make request.
+     * To run this test kindly update the .env.bis file true api credentials.
+     *
+     * @return void
+     */
+    public function testMakeRequest()
+    {
+        loadEnv(realpath(__DIR__.'/../../').'/.env.bis');
+        $payment = new MobileMoney;
+
+        $amount = 0.2;
+        $phone = env('TEST_PHONE');
+        $network = 'MTN';
+
+        $request = $payment->request($amount, $phone, $network);
+
+        // dump($request);
+        $this->assertTrue($request->isSuccessful);
+        $this->assertEquals($request->transactionId, $payment->getTransactionId());
+    }
+
     public function runConfigTest($prefix = '', $suffix = '')
     {
         $this->fillEnvWithConfig($prefix, $suffix);
@@ -47,8 +69,6 @@ class MobileMoneyTest extends TestCase
         $payment = new MobileMoney;
 
         $payment->configure();
-        dump($payment->getApiKey());
-        // dump(env($prefix.'TXTPAY_KEY'.$suffix));
         $this->assertEquals($payment->getApiId(), env($prefix.'TXTPAY_ID'.$suffix));        
         $this->assertEquals($payment->getApiKey(), env($prefix.'TXTPAY_KEY'.$suffix));
         $this->assertEquals($payment->getAccount(), env($prefix.'TXTPAY_ACCOUNT'.$suffix));
@@ -60,7 +80,7 @@ class MobileMoneyTest extends TestCase
 
     public function fillenvWithConfig($prefix = '', $suffix = '')
     {
-        $env = realpath(__DIR__.'/../../').'.env';
+        $env = realpath(__DIR__.'/../../').'/.env';
         $this->createEnvIfNotExist($env);
 
         foreach ($this->defaultConfig as $key => $value) {

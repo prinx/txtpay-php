@@ -4,6 +4,7 @@ namespace Txtpay;
 
 use Prinx\Notify\Log;
 use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 use Throwable;
 use Txtpay\Contracts\MobileMoneyInterface;
 use function Prinx\Dotenv\env;
@@ -25,6 +26,7 @@ class MobileMoney implements MobileMoneyInterface
     protected $description;
     protected $nickname;
     protected $logger;
+    protected $logFile;
     protected $transactionId;
     protected $voucherCode;
     protected $phone;
@@ -52,9 +54,7 @@ class MobileMoney implements MobileMoneyInterface
         $prefix = $this->envCredententialsPrefix;
         $suffix = $this->envCredententialsSuffix;
 
-        dump('Configuring');
-        dump(env());
-        dump($this->apiId = env($prefix.'TXTPAY_ID'.$suffix));
+        $this->apiId = env($prefix.'TXTPAY_ID'.$suffix);
         $this->apiKey = env($prefix.'TXTPAY_KEY'.$suffix);
         $this->account = env($prefix.'TXTPAY_ACCOUNT'.$suffix);
         $this->nickname = env($prefix.'TXTPAY_NICKNAME'.$suffix);
@@ -199,14 +199,27 @@ class MobileMoney implements MobileMoneyInterface
                 'content'   => $content,
             ];
         } catch (Throwable $th) {
-            $data = [
-                'isSuccessful' => false,
-                'error'      => $th->getMessage(),
-                'response'   => $response->getContent(false),
-            ];
+            $data = $this->errorResponse($th, $response);
         }
 
         return  json_decode(json_encode($data));
+    }
+
+    public function errorResponse(Throwable $exception, ResponseInterface $response)
+    {
+        $content = $response->getContent(false);
+        $parsed = json_decode($content, true);
+        $error = $exception->getMessage();
+
+        if ($parsed && isset($parsed['status']) && $parsed['status'] === 400) {
+            $error = $parsed['message'] ?? $error;
+        }
+
+        return [
+            'isSuccessful' => false,
+            'error'      => $error,
+            'response'   => $parsed ?: $content,
+        ];
     }
 
     public function getTransactionId()
