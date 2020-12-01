@@ -4,6 +4,8 @@ TXTGHANA Payment Gateway PHP SDK
 
 ## Installation
 
+The package can be installed via composer. Install it if you don't have it yet. Then open a terminal in your project root folder and run:
+
 ```shell
 composer require prinx/txtpay
 ```
@@ -255,7 +257,6 @@ You can also get any of the payload parameters by passing the name of the parame
 ```php
 $transactionId = $callback->getPayload('id');
 $transactionCode = $callback->getPayload('code');
-//...
 ```
 
 ### Message associated to the request
@@ -333,8 +334,14 @@ If no folder has been set, a default log folder will be created at `YOUR_PROJECT
 
 #### Logging to SLACK
 
-You can provide in your .env file a slack webhook to automatically log transactions to slack.
+You can provide in your `.env` file a slack webhook to automatically log transactions to slack.
 
 ```ini
 SLACK_LOG_WEBHOOK=https://
 ```
+
+## Contributing
+
+## License
+
+[MIT](LICENSE)
