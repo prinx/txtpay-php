@@ -40,8 +40,6 @@ $network = 'MTN'; // MTN|AIRTEL|VODAFONE
 $request = $payment->request($amount, $phone, $network);
 ```
 
-The `autoConfig` method will Automatically retrieve the configuration in the `.env` file and set them on the payment instance.
-
 #### Voucher code
 
 Some networks (typically VODAFONE) require the user to generate a voucher code. This code can be easily passed to the request:
