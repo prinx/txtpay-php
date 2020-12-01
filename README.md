@@ -107,12 +107,12 @@ class MobileMoneyCallbackController extends Controller
 
 Everything is the same except the code will be in a method instead of directly in the file.
 
-Now, we must register the callback functions that will be run on success, failure or some defined custom condition of the mobile money transaciton. The callback will receive the `$payload` and the `$callback` instance.
+Now, we must register the callback functions that will be run on success, failure or some defined custom condition of the mobile money transaciton. The callback will receive the `$callback` instance.
 
 ```php
-$callback->success(function ($payload, $callback) {
+$callback->success(function ($callback) {
     // Transaction was successful. Do stuff.
-})->failure(function ($payload, $callback) {
+})->failure(function ($callback) {
     // Transaction failed. Do stuff.
 });
 ```
@@ -128,9 +128,9 @@ The full code will be:
 ```php
 $callback = new Callback();
 
-$callback->success(function ($payload, $callback) {
+$callback->success(function ($callback) {
     //
-})->failure(function ($payload, $callback) {
+})->failure(function ($callback) {
     //
 })->process();
 ```
@@ -141,7 +141,7 @@ In case you have only one callback function that will be run whether the transac
 ```php
 $callback = new Callback;
 
-$callback->process(function ($payload, $callback) {
+$callback->process(function ($callback) {
     //
 });
 ```
@@ -161,15 +161,15 @@ use Txtpay\Callback;
 
 $callback = new Callback;
 
-$callback->on('000', function ($payload, $callback) {
+$callback->on('000', function ($callback) {
     //
-})->on('101', function ($payload, $callback) {
+})->on('101', function ($callback) {
     //
-})->on(['code' => '000', 'phone' => '233...'], function ($payload, $callback) {
+})->on(['code' => '000', 'phone' => '233...'], function ($callback) {
     //
-})->success(function ($payload, $callback){
+})->success(function ($callback){
     // We can still chain the success or failure methods.
-})->failure(function ($payload, $callback) {
+})->failure(function ($callback) {
     //
 })->process();
 ```
@@ -184,16 +184,16 @@ A payload is sent to the callback URL. It contains 8 parameters:
 
 #### code
 
-The code of the transaction.
+The code of the request.
 
 ```php
-$callback->getCode();
+$requestCode = $callback->getCode();
 ```
 
 #### status
 
 ```php
-$callback->getStatus(); // approved, declined...
+$requestStatus = $callback->getStatus(); // approved, declined...
 ```
 
 #### details
@@ -201,7 +201,7 @@ $callback->getStatus(); // approved, declined...
 The detail message of the status.
 
 ```php
-$callback->getDetails();
+$requestDetails = $callback->getDetails();
 ```
 
 #### id
@@ -209,33 +209,39 @@ $callback->getDetails();
 The transaction ID.
 
 ```php
-$callback->getId();
-```
-
-#### network
-
-```php
-$callback->getNetwork(); // MTN, AIRTEL, VODAFONE, ...
+$transactionId = $callback->getId();
 ```
 
 #### phone
 
-The phone number.
+The phone number to which the request was made.
 
 ```php
-$callback->getPhone(); // 233...
+$phone = $callback->getPhone(); // 233...
+```
+
+#### network
+
+The network to which belong the phone number.
+
+```php
+$network = $callback->getNetwork(); // MTN, AIRTEL, VODAFONE, ...
 ```
 
 #### amount
 
+The amount of the transaction.
+
 ```php
-$callback->getAmount();
+$amount = $callback->getAmount();
 ```
 
 #### currency
 
+The currency in which the transaction was made.
+
 ```php
-$callback->getCurrency(); // GHS
+$currency = $callback->getCurrency(); // GHS
 ```
 
 You can get all the payload array by calling the `getPayload` method without parameter.
@@ -257,7 +263,7 @@ $transactionCode = $callback->getPayload('code');
 You can get the message associated to the request by calling the `message` method of the callback instance.
 
 ```php
-$payload = $callback->getMessage();
+$message = $callback->getMessage();
 ```
 
 The message is associated to the code in the payload.
@@ -284,7 +290,7 @@ These are the possible messages:
 The callback instance is automatically passed to the closure. You can then use it as below:
 
 ```php
-$callback->success(function ($payload, $callback) {
+$callback->success(function ($callback) {
     $message = $callback->getMessage();
 });
 ```
@@ -292,19 +298,8 @@ $callback->success(function ($payload, $callback) {
 Or you can ignore the passed instance and directly use `$this` in the closure.
 
 ```php
-$callback->success(function ($payload) {
-    $message = $this->getMessage();
-});
-```
-
-You can also completely ignore the callback parameters:
-
-```php
 $callback->success(function () {
-    $payload = $this->getPayload();
     $message = $this->getMessage();
-
-    // ...
 });
 ```
 
