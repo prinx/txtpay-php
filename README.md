@@ -1,4 +1,4 @@
-# txtpay-php
+# TXTPAY PHP SDK
 
 TXTGHANA Payment Gateway PHP SDK
 
