@@ -52,7 +52,9 @@ class MobileMoney implements MobileMoneyInterface
         $prefix = $this->envCredententialsPrefix;
         $suffix = $this->envCredententialsSuffix;
 
-        $this->apiId = env($prefix.'TXTPAY_ID'.$suffix);
+        dump('Configuring');
+        dump(env());
+        dump($this->apiId = env($prefix.'TXTPAY_ID'.$suffix));
         $this->apiKey = env($prefix.'TXTPAY_KEY'.$suffix);
         $this->account = env($prefix.'TXTPAY_ACCOUNT'.$suffix);
         $this->nickname = env($prefix.'TXTPAY_NICKNAME'.$suffix);
@@ -298,7 +300,7 @@ class MobileMoney implements MobileMoneyInterface
 
     public function getApiKey()
     {
-        $this->apiKey;
+        return $this->apiKey;
     }
 
     public function setPrimaryCallback($callback)

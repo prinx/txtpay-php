@@ -5,6 +5,7 @@ namespace Txtpay;
 use Closure;
 use Prinx\Notify\Log;
 use Txtpay\Contracts\CallbackInterface;
+use Txtpay\Http\Request;
 
 /**
  * TXTGHANA Payment Gateway SDK.
@@ -15,13 +16,20 @@ use Txtpay\Contracts\CallbackInterface;
 class Callback implements CallbackInterface
 {
     /**
-     * Logger.
-     *
      * @var Log
      */
     protected $logger;
 
+    protected $logFolder;
+
+    /**
+     * @var array
+     */
     protected $payload;
+
+    protected $canLog = true;
+
+    protected $jsonPrettyPrint = true;
 
     protected $requiredParameters = [
         'code',
@@ -69,15 +77,26 @@ class Callback implements CallbackInterface
     protected $isSuccessful;
 
     /**
-     * Callbacks
-     *
-     * @var array
+     * @var Closure[]
      */
     protected $callbacks = [];
 
+    /**
+     * @var Request
+     */
+    public $request;
+
     public function __construct()
     {
-        $this->captureRequest();
+        $this->request = Request::capture();
+        $this->handlePayload();
+    }
+
+    public function handlePayload()
+    {
+        $this->validatePayload();
+        $this->setPayload($this->request->input->all());
+        $this->logPayload();
     }
 
     /**
@@ -91,12 +110,20 @@ class Callback implements CallbackInterface
      */
     public function on($conditions, Closure $callback)
     {
-        if (is_string($conditions)) {
+        if ($this->matches($conditions)) {
+            $this->register($callback);
+        }
+
+        return $this;
+    }
+
+    public function matches($conditions)
+    {
+        if (!is_array($conditions)) {
             $conditions = [$this->defaultConditionName => $conditions];
         }
 
         $payload = $this->getPayload();
-        $match = true;
 
         foreach ($conditions as $key => $value) {
             if (!isset($payload[$key])) {
@@ -104,16 +131,11 @@ class Callback implements CallbackInterface
             }
   
             if ($payload[$key] != $value) {
-                $match = false;
-                break;
+                return false;
             }
         }
 
-        if ($match) {
-            $this->register($callback);
-        }
-
-        return $this;
+        return true;
     }
 
     /**
@@ -127,9 +149,7 @@ class Callback implements CallbackInterface
      */
     public function success(Closure $callback)
     {
-        if (in_array($this->getPayload($this->defaultConditionName), $this->successCodes)) {
-            $this->register($callback);
-        }
+        $this->registerIf($this->isSuccessful(), $callback);
 
         return $this;
     }
@@ -145,9 +165,7 @@ class Callback implements CallbackInterface
      */
     public function failure(Closure $callback)
     {
-        if (in_array($this->getPayload($this->defaultConditionName), $this->failureCodes)) {
-            $this->register($callback);
-        }
+        $this->registerIf($this->failed(), $callback);
 
         return $this;
     }
@@ -176,6 +194,23 @@ class Callback implements CallbackInterface
         $this->callbacks[] = $callback;
 
         return $this;
+    }
+
+    /**
+     * Register the callback if the condition is met.
+     *
+     * @param bool|Closure $condition
+     * @param Closure $callback
+     * 
+     * @return void
+     */
+    public function registerIf($condition, Closure $callback)
+    {
+        $mustBeRegistered = is_callable($condition) ? call_user_func($condition) : $condition;
+
+        if ($mustBeRegistered) {
+            $this->register($callback);
+        }
     }
 
     /**
@@ -225,44 +260,38 @@ class Callback implements CallbackInterface
         return $this->failureCodes;
     }
 
-    public function captureRequest()
+    public function setPayload($payload = [])
     {
-        /*
-         * @see https://stackoverflow.com/a/11990821/14066311
-         */
-        $json = file_get_contents('php://input');
-        $payload = (array) json_decode($json, true);
+        $this->originalPayload = $payload;
 
-        $this->validatePayload($payload);
-        $this->setPayload($payload);
-        $this->logPayload();
+        $this->populateCustomPayloadNames();
 
         return $this;
     }
 
-    public function setPayload($payload = [])
+    public function populateCustomPayloadNames()
     {
-        $this->originalPayload = array_replace($payload, $_REQUEST);
-
         foreach ($this->customPayloadNames as $original => $custom) {
             $this->payload[$custom] = $this->originalPayload[$original];
         }
 
-        return $this;
+        return $this->payload;
     }
 
     public function getPayload($attribute = null)
     {
-        return $attribute ? $this->payload[$attribute] ?? $this->originalPayload[$attribute] ?? null : $this->payload;
+        return $attribute ? $this->payload[$attribute] ?? null : $this->payload;
     }
 
-    public function validatePayload($payload)
+    public function validatePayload()
     {
+        $payload = $this->request->input->all();
+
         foreach ($this->requiredParameters as $param) {
             if (!isset($payload[$param])) {
                 $this->log(
                     "Missing parameters \"{$param}\" in the request.\n".
-                    'Payload: '.json_encode($payload, JSON_PRETTY_PRINT),
+                    'Payload: '.$this->jsonEncode($payload),
                     $this->failureLogFile()
                 );
 
@@ -275,7 +304,7 @@ class Callback implements CallbackInterface
     {
         $this->log(
             'Callback Received for momo transaction to '.$this->getPayload('phone').
-            "\nPayload: ".json_encode($this->getPayload(), JSON_PRETTY_PRINT),
+            "\nPayload: ".$this->jsonEncode($this->getPayload()),
             $this->callbackLogFile()
         );
     }
@@ -287,13 +316,15 @@ class Callback implements CallbackInterface
 
     public function log($message, $file = '', $level = 'info')
     {
-        if ($file && $this->getLogger()) {
-            $this->getLogger()
-                ->setFile($file)
-                ->{$level}($message);
-        }
+        if ($this->canLog) {
+            SlackLog::log($message, $level);
 
-        SlackLog::log($message, $level);
+            if ($file && $this->getLogger()) {
+                $this->getLogger()
+                    ->setFile($file)
+                    ->{$level}($message);
+            }
+        }
     }
 
     public function isSuccessful()
@@ -313,7 +344,7 @@ class Callback implements CallbackInterface
         return !$this->isSuccessful();
     }
 
-    public function getMessages($code = null, $transactionId = null)
+    public static function getMessages($code = null, $transactionId = null)
     {
         $messages = [
             '000'     => 'Transaction successful. Your transaction ID is '.$transactionId,
@@ -409,5 +440,38 @@ class Callback implements CallbackInterface
     public function getCurrency()
     {
         return $this->getPayload('currency');
+    }
+
+    public function setCanLog(bool $canLog)
+    {
+        $this->canLog = $canLog;
+        
+        return $this;
+    }
+
+    public function disableLog()
+    {
+        return $this->setCanLog(false);
+    }
+
+    public function enableLog()
+    {
+        return $this->setCanLog(true);
+    }
+
+    public function jsonEncode($value, $options = 0, $depth = 512)
+    {
+        if ($this->jsonPrettyPrint) {
+            return json_encode($value, JSON_PRETTY_PRINT|$options, $depth);
+        }
+
+        return json_encode($value, $options, $depth);
+    }
+
+    public function setJsonPrettyPrint(bool $pretty)
+    {
+        $this->jsonPrettyPrint = $pretty;
+
+        return $this;
     }
 }

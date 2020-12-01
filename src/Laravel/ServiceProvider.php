@@ -17,10 +17,8 @@ class RepositoryServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->app->bind(MobileMoneyInterface::class, MobileMoney::class);
         $this->app->bind(CallbackInterface::class, Callback::class);
-        $this->app->bind(MobileMoneyInterface::class, function () {
-            return (new MobileMoney)->autoConfig();
-        });
     }
 
     public function provides()

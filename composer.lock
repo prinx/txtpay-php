@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "dc07a6d0d4debb8c7b8ca5f36600ad46",
+    "content-hash": "c01001c26002d397d5f9dada16a91a4d",
     "packages": [
         {
             "name": "brick/math",
@@ -1107,23 +1107,24 @@
         },
         {
             "name": "prinx/dotenv",
-            "version": "0.4.2",
+            "version": "v0.4.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/prinx/dotenv.git",
-                "reference": "c713e8da1eca3f496d6855e50ad88315371d632d"
+                "reference": "3a36a10035ba319ebc08bdbdbc0dbddce9d556d1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/prinx/dotenv/zipball/c713e8da1eca3f496d6855e50ad88315371d632d",
-                "reference": "c713e8da1eca3f496d6855e50ad88315371d632d",
+                "url": "https://api.github.com/repos/prinx/dotenv/zipball/3a36a10035ba319ebc08bdbdbc0dbddce9d556d1",
+                "reference": "3a36a10035ba319ebc08bdbdbc0dbddce9d556d1",
                 "shasum": ""
             },
             "require": {
                 "php": ">=5.6.0"
             },
             "require-dev": {
-                "phpunit/phpunit": "9.2.5"
+                "nunomaduro/collision": "^5.1",
+                "phpunit/phpunit": "^9.4"
             },
             "type": "library",
             "autoload": {
@@ -1154,7 +1155,7 @@
                 "env",
                 "phpdotenv"
             ],
-            "time": "2020-08-18T10:15:41+00:00"
+            "time": "2020-12-01T11:32:50+00:00"
         },
         {
             "name": "prinx/notify",
