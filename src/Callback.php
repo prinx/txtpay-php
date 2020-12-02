@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of the Txtpay package.
+ *
+ * (c) Prince Dorcis <princedorcis@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE file
+ * that was distributed with this source code.
+ */
+
 namespace Txtpay;
 
 use Closure;
@@ -62,7 +71,7 @@ class Callback implements CallbackInterface
         'r_switch'          => 'network',
         'subscriber_number' => 'phone',
         'amount'            => 'amount',
-        'currency'          => 'currency'
+        'currency'          => 'currency',
     ];
 
     protected $defaultConditionName = 'code';
@@ -118,10 +127,10 @@ class Callback implements CallbackInterface
     /**
      * Register the callback if conditions match the request parameters.
      *
-     * @param string|array $condition String or associative array matching the request parameters.
-     *                             If string, the parameter is either one of the custom conditions
-     *                             specified or the defaultConditionName.
-     * @param Closure|string $callback Closure or name of the method in the callback handler class.
+     * @param string|array   $condition String or associative array matching the request parameters.
+     *                                  If string, the parameter is either one of the custom conditions
+     *                                  specified or the defaultConditionName.
+     * @param Closure|string $callback  Closure or name of the method in the callback handler class.
      *
      * @return $this
      */
@@ -162,7 +171,7 @@ class Callback implements CallbackInterface
             if (!isset($payload[$key])) {
                 throw new InvalidPayloadKeyException('Unknown key '.$key.' in the conditions passed to the "on" method.');
             }
-  
+
             if ($payload[$key] != $value) {
                 return false;
             }
@@ -232,7 +241,7 @@ class Callback implements CallbackInterface
     /**
      * Register the callback if the condition is met.
      *
-     * @param bool|Closure $condition
+     * @param bool|Closure   $condition
      * @param Closure|string $callback
      *
      * @return void
@@ -304,7 +313,7 @@ class Callback implements CallbackInterface
         }
 
         if (!is_object($handler)) {
-            throw new InvalidHandlerException("The callback handler must be a classname or an object");
+            throw new InvalidHandlerException('The callback handler must be a classname or an object');
         }
 
         $this->handler = $handler;
@@ -323,6 +332,7 @@ class Callback implements CallbackInterface
         foreach ($methods as $method) {
             if (is_string($method) && !method_exists($this->handler, $method)) {
                 $condition = is_string($condition) ? $condition : json_encode($condition);
+
                 throw new InvalidHandlerException('Method "'.$method.'" expected by condition '.$condition.' is not found in the handler class "'.get_class($this->handler).'"');
             }
         }
@@ -351,7 +361,7 @@ class Callback implements CallbackInterface
             $callback = $closure->bindTo($bindTo);
         }
 
-        return call_user_func_array($callback, [$this]);        
+        return call_user_func_array($callback, [$this]);
     }
 
     public function runCallbacks()
@@ -361,12 +371,12 @@ class Callback implements CallbackInterface
                 $this->runClosure($callback, $this);
                 continue;
             }
-            
+
             if (is_array($callback)) {
                 foreach ($callback as $actualCallback) {
                     if ($actualCallback instanceof Closure) {
                         $this->runClosure($actualCallback, $this);
-                    } elseif(is_object($this->handler)) {
+                    } elseif (is_object($this->handler)) {
                         call_user_func_array([$this->handler, $actualCallback], [$this]);
                     }
                 }
@@ -542,7 +552,7 @@ class Callback implements CallbackInterface
     public function setLogFolder($folder)
     {
         $this->logFolder = $folder;
-        
+
         return $this;
     }
 
@@ -589,7 +599,7 @@ class Callback implements CallbackInterface
     public function setCanLog(bool $canLog)
     {
         $this->canLog = $canLog;
-        
+
         return $this;
     }
 
@@ -606,7 +616,7 @@ class Callback implements CallbackInterface
     public function jsonEncode($value, $options = 0, $depth = 512)
     {
         if ($this->jsonPrettyPrint) {
-            return json_encode($value, JSON_PRETTY_PRINT|$options, $depth);
+            return json_encode($value, JSON_PRETTY_PRINT | $options, $depth);
         }
 
         return json_encode($value, $options, $depth);

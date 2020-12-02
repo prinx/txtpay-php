@@ -1,13 +1,22 @@
 <?php
 
+/*
+ * This file is part of the Txtpay package.
+ *
+ * (c) Prince Dorcis <princedorcis@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE file
+ * that was distributed with this source code.
+ */
+
 namespace Txtpay;
 
+use function Prinx\Dotenv\env;
 use Prinx\Notify\Log;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 use Throwable;
 use Txtpay\Contracts\MobileMoneyInterface;
-use function Prinx\Dotenv\env;
 
 /**
  * TXTGHANA Mobile Money Payment SDK.
@@ -38,10 +47,10 @@ class MobileMoney implements MobileMoneyInterface
     /**
      * Automatically discover and set configurations in the .env file.
      *
-     * @param string|int|double $amount
-     * @param string $phone
-     * @param string $network
-     * @param string $voucherCode
+     * @param string|int|float $amount
+     * @param string           $phone
+     * @param string           $network
+     * @param string           $voucherCode
      *
      * @return $this
      */
@@ -78,10 +87,10 @@ class MobileMoney implements MobileMoneyInterface
     /**
      * Send Mobile Money request to the specified phone number with the specified amount.
      *
-     * @param string|int|double $amount
-     * @param string $phone
-     * @param string $network
-     * @param string $voucherCode
+     * @param string|int|float $amount
+     * @param string           $phone
+     * @param string           $network
+     * @param string           $voucherCode
      *
      * @return stdClass
      */
@@ -120,8 +129,8 @@ class MobileMoney implements MobileMoneyInterface
     {
         $token = $this->generateToken();
 
-        $headers =  [
-            'Authorization' => 'Bearer '.$token
+        $headers = [
+            'Authorization' => 'Bearer '.$token,
         ];
 
         return $headers;
@@ -167,7 +176,7 @@ class MobileMoney implements MobileMoneyInterface
             'txtpay_api_id'  => $this->apiId,
             'txtpay_api_key' => $this->apiKey,
         ];
-        
+
         $response = $this->sendRequest($this->getTokenUrl(), $payload);
 
         if (!$response->isSuccessful || !isset($response->content->data->token)) {
@@ -188,7 +197,7 @@ class MobileMoney implements MobileMoneyInterface
             ]);
 
             $response = $client->request('POST', $url, [
-                'json' => $payload,
+                'json'    => $payload,
                 'headers' => $headers,
             ]);
 
@@ -196,7 +205,7 @@ class MobileMoney implements MobileMoneyInterface
 
             $data = [
                 'isSuccessful' => true,
-                'content'   => $content,
+                'content'      => $content,
             ];
         } catch (Throwable $th) {
             $data = $this->errorResponse($th, $response);
@@ -217,8 +226,8 @@ class MobileMoney implements MobileMoneyInterface
 
         return [
             'isSuccessful' => false,
-            'error'      => $error,
-            'response'   => $parsed ?: $content,
+            'error'        => $error,
+            'response'     => $parsed ?: $content,
         ];
     }
 
@@ -406,7 +415,7 @@ class MobileMoney implements MobileMoneyInterface
 
         return $this;
     }
-    
+
     public function setEnvCredententialsSuffix(string $suffix)
     {
         $this->envCredententialsSuffix = $suffix;

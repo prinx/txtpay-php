@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of the Txtpay package.
+ *
+ * (c) Prince Dorcis <princedorcis@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE file
+ * that was distributed with this source code.
+ */
+
 namespace Tests\Unit;
 
 use Tests\TestCase;
@@ -15,7 +24,7 @@ class CallbackHandlerMustThrowExceptionTest extends TestCase
         $this->expectException(InvalidHandlerException::class);
 
         $_POST = [
-            'code'            => '000',
+            'code'              => '000',
             'status'            => 'test',
             'reason'            => 'test',
             'transaction_id'    => (new MobileMoney)->getTransactionId(),

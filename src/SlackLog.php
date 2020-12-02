@@ -1,10 +1,19 @@
 <?php
 
+/*
+ * This file is part of the Txtpay package.
+ *
+ * (c) Prince Dorcis <princedorcis@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE file
+ * that was distributed with this source code.
+ */
+
 namespace Txtpay;
 
+use function Prinx\Dotenv\env;
 use Symfony\Component\HttpClient\HttpClient;
 use Throwable;
-use function Prinx\Dotenv\env;
 
 /**
  * Simple log to slack.
@@ -22,7 +31,7 @@ class SlackLog
 
     public static function log($message, $level = 'info')
     {
-        if (!($url =  env('SLACK_LOG_WEBHOOK', null))) {
+        if (!($url = env('SLACK_LOG_WEBHOOK', null))) {
             return;
         }
 

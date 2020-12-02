@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of the Txtpay package.
+ *
+ * (c) Prince Dorcis <princedorcis@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE file
+ * that was distributed with this source code.
+ */
+
 namespace Txtpay\Contracts;
 
 use Closure;
@@ -13,8 +22,8 @@ interface CallbackInterface
      * Register the callback if conditions match the request parameters.
      *
      * @param string|array $conditions String or associative array matching the request parameters.
-     *                             If string, the parameter is the defaultConditionName.
-     * @param Closure $callback
+     *                                 If string, the parameter is the defaultConditionName.
+     * @param Closure      $callback
      *
      * @return $this
      */
