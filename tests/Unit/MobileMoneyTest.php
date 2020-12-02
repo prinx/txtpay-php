@@ -47,7 +47,8 @@ class MobileMoneyTest extends TestCase
      */
     public function testMakeRequest()
     {
-        loadEnv(realpath(__DIR__.'/../../').'/.env.bis');
+        $this->loadEnv(realpath(__DIR__.'/../../').'/.env.bis');
+
         $payment = new MobileMoney;
 
         $amount = 0.2;
@@ -63,6 +64,8 @@ class MobileMoneyTest extends TestCase
 
     public function runConfigTest($prefix = '', $suffix = '')
     {
+        $this->loadEnv(realpath(__DIR__.'/../../').'/.env');
+
         $this->fillEnvWithConfig($prefix, $suffix);
 
         $payment = new MobileMoney;
@@ -92,5 +95,12 @@ class MobileMoneyTest extends TestCase
         if (!file_exists($path)) {
             file_put_contents($path, '');
         }
+    }
+
+    public function loadEnv($env)
+    {
+        $this->createEnvIfNotExist($env);
+
+        loadEnv($env);
     }
 }
