@@ -30,15 +30,17 @@ class TestCase extends BaseTestCase
         $this->assertTrue(1 === 1);
     }
 
-    public function shouldBeCalled(InvocationOrder $times = null)
+    public function createEnvIfNotExist($path)
     {
-        $method = '__invoke';
-        $shouldBeCalled = $this->getMockBuilder(stdClass::class)
-            ->addMethods([$method])
-            ->getMock();
-        $shouldBeCalled->expects($times ?: $this->once())
-            ->method($method);
+        if (!file_exists($path)) {
+            file_put_contents($path, '');
+        }
+    }
 
-        return $shouldBeCalled;
+    public function loadEnv($env)
+    {
+        $this->createEnvIfNotExist($env);
+
+        loadEnv($env);
     }
 }

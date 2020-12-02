@@ -1,5 +1,11 @@
 # TXTPAY PHP SDK
 
+<p>
+<a href="https://travis-ci.org/prinx/txtpay-php"><img src="https://travis-ci.com/prinx/txtpay-php.svg?branch=main" alt="Build Status"></a>
+<a href="https://packagist.org/packages/prinx/txtpay-php"><img src="https://poser.pugx.org/prinx/txtpay/v/stable.svg" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/prinx/txtpay-php"><img src="https://poser.pugx.org/prinx/txtpay/license.svg" alt="License"></a>
+</p>
+
 TXTGHANA Payment Gateway PHP SDK
 
 ## Installation

@@ -20,6 +20,8 @@ class CallbackHandlerWithCallbackClosureInArrayTest extends TestCase
 {
     public function testMustRunProvidedCallbacksIfConditionsMatchFromCallbackHandlerClass()
     {
+        $this->loadEnv(realpath(__DIR__.'/../../').'/.env');
+
         $id = (new MobileMoney)->getTransactionId();
         $messages = Callback::getMessages(null, $id);
 
