@@ -11,9 +11,7 @@
 
 namespace Tests;
 
-use PHPUnit\Framework\MockObject\Rule\InvocationOrder;
 use PHPUnit\Framework\TestCase as BaseTestCase;
-use stdClass;
 
 /**
  * Base Test case.
