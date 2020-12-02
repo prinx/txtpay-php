@@ -326,6 +326,192 @@ $callback->success(function () use ($sms) {
 });
 ```
 
+### Using a class to handle callbacks
+
+Instead of directly passing the callbacks closures to the `success`, `failure` or `on` methods, you can move all the callbacks to a class and just pass the class to the `process` method.
+
+First, create a class containing a `callbacks` methods:
+
+```php
+class CallbackHandler
+{
+    public function callbacks(Callback $callback)
+    {
+        //
+    }
+}
+```
+
+The `callbacks` method must return an array containing the mapping of your conditions with the callback closures:
+
+```php
+class CallbackHandler
+{
+    public function callbacks(Callback $callback)
+    {
+        return [
+            ['000', function (Callback $callback) {
+                $message = $callback->getMessage();
+            }],
+            ['101', function (Callback $callback) {
+                //
+            }],
+        ];
+    }
+}
+```
+
+The mappings can be duplicated:
+
+```php
+class CallbackHandler
+{
+    public function callbacks(Callback $callback)
+    {
+        return [
+            ['000', function (Callback $callback) {
+                //
+            }],
+            ['000', function (Callback $callback) {
+                // Another callback that will be run for the same code.
+            }],
+            ['101', function (Callback $callback) {
+                //
+            }],
+        ];
+    }
+}
+```
+
+Or you can rather passed an array of closures:
+
+```php
+class CallbackHandler
+{
+    public function callbacks(Callback $callback)
+    {
+        return [
+            ['000', [
+                function (Callback $callback) {
+                    //
+                },
+                function (Callback $callback) {
+                    // Another callback that will be run for the same code.
+                },
+            ]],
+            ['101', function (Callback $callback) {
+                //
+            }],
+        ];
+    }
+}
+```
+
+You can pass the custom conditions `success`, `failure` or `always`:
+
+```php
+class CallbackHandler
+{
+    public function callbacks(Callback $callback)
+    {
+        return [
+            ['success', function (Callback $callback) {
+                //
+            }],
+            ['failure', function (Callback $callback) {
+                //
+            }],
+            ['always', function (Callback $callback) {
+                //
+            }],
+        ];
+    }
+}
+```
+
+You can also pass an array of conditions:
+
+```php
+class CallbackHandler
+{
+    public function callbacks(Callback $callback)
+    {
+        return [
+            [['code' => '000', 'phone' => '233...'], function (Callback $callback) {
+                    //
+            }],
+        ];
+    }
+}
+```
+
+All these can be mixed according to your need:
+
+```php
+class CallbackHandler
+{
+    public function callbacks(Callback $callback)
+    {
+        return [
+            ['000', function (Callback $callback) {
+                //
+            }],
+            [['code' => '000', 'phone' => '233...'], function (Callback $callback) {
+                //
+            }],
+            ['success', function (Callback $callback) {
+                //
+            }],
+            ['always', function (Callback $callback) {
+                //
+            }],
+        ];
+    }
+}
+```
+
+Instead of returning directly closures in the callbacks methods, you can create public methods in the callback handler class and reference those methods in the array returned in the `callbacks` method:
+
+```php
+class CallbackHandler
+{
+    public function callbacks(Callback $callback)
+    {
+        return [
+            ['000', 'sendSms'],
+            ['101', ['notifyAdmin', 'sendSms']]
+            ['always', 'log'],
+        ];
+    }
+
+    public function notifyAdmin(Callback $callback)
+    {
+        // Notify admin...
+    }
+
+    public function sendSms(Callback $callback)
+    {
+        //
+    }
+
+    public function log(Callback $callback)
+    {
+        //
+    }
+}
+```
+
+After writing the callback handler class, you just need to pass it to the process method:
+
+```php
+// Do not forget to import the class from it namespace
+use App\Helpers\CallbackHandler;
+
+$callback = new Callback;
+
+$callback->process(CallbackHandler::class);
+```
+
 ### Logging
 
 #### Logging locally
@@ -346,7 +532,9 @@ You can provide in your `.env` file a slack webhook to automatically log transac
 SLACK_LOG_WEBHOOK=https://
 ```
 
-## Contributing
+## Contribute
+
+Star the repo :star: and feel free to fork create pull requests to add features to the package.
 
 ## License
 
