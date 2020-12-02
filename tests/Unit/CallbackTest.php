@@ -4,13 +4,13 @@ namespace Tests\Unit;
 
 use Tests\TestCase;
 use Txtpay\Callback;
+use Txtpay\Helpers\CallbackHandler;
 use Txtpay\MobileMoney;
 use Txtpay\Support\Combination;
-use function Prinx\Dotenv\env;
 
 class CallbackTest extends TestCase
 {
-    public function testPayloadNamesCustomization()
+    public function testMustProperlyGetPayloadParametersWithTheirCustomNames()
     {
         $momoService = new MobileMoney;
         $payload = $_POST = [
@@ -53,16 +53,15 @@ class CallbackTest extends TestCase
 
     public function testMustRunProvidedCallbacksIfConditionsMatch()
     {
-        $testNumber = '23354545454545';
-        $momoService = new MobileMoney;
-        $messages = Callback::getMessages(null, $momoService->getTransactionId());
+        $id = (new MobileMoney)->getTransactionId();
+        $messages = Callback::getMessages(null, $id);
 
         $_POST = [
             'status'            => 'test',
             'reason'            => 'test',
-            'transaction_id'    => $momoService->getTransactionId(),
+            'transaction_id'    => $id,
             'r_switch'          => 'test',
-            'subscriber_number' => $testNumber,
+            'subscriber_number' => '23354545454545',
             'amount'            => 1,
             'currency'          => 'GHS',
         ];

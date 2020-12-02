@@ -11,12 +11,12 @@ class Combination
         $keys = array_keys($array);
         $return = [];
 
-        for ($i=0; $i < $members; $i++) { 
+        for ($i=0; $i < $members; $i++) {
             $b = sprintf("%0".$count."b", $i);
 
             $out = [];
 
-            for ($j=0; $j < $count; $j++) { 
+            for ($j=0; $j < $count; $j++) {
                 if ($b[$j] == '1') {
                     $out[$keys[$j]] = $array[$keys[$j]];
                 }

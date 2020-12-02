@@ -90,7 +90,7 @@ class MobileMoney implements MobileMoneyInterface
         $phone = null,
         $network = null,
         $voucherCode = null
-    ) {        
+    ) {
         if (!$this->configured) {
             $this->configure();
         }

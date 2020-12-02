@@ -5,6 +5,7 @@
     "license": "MIT",
     "minimum-stability": "stable",
     "require": {
+        "php": ">=7.3",
         "prinx/dotenv": "^0.4",
         "prinx/notify": "^0.0",
         "symfony/http-client": "^5.1",

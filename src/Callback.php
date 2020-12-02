@@ -5,6 +5,9 @@ namespace Txtpay;
 use Closure;
 use Prinx\Notify\Log;
 use Txtpay\Contracts\CallbackInterface;
+use Txtpay\Exceptions\InvalidHandlerException;
+use Txtpay\Exceptions\InvalidPayloadKeyException;
+use Txtpay\Exceptions\UndefinedCallbackBagException;
 use Txtpay\Http\Request;
 
 /**
@@ -15,6 +18,15 @@ use Txtpay\Http\Request;
  */
 class Callback implements CallbackInterface
 {
+    const HANDLER_CONDITION = 0;
+    const HANDLER_CALLBACK = 1;
+
+    protected $customConditions = [
+        'success',
+        'failure',
+        'always',
+    ];
+
     /**
      * @var Log
      */
@@ -81,6 +93,10 @@ class Callback implements CallbackInterface
      */
     protected $callbacks = [];
 
+    protected $handler;
+
+    protected $callbackBagName = 'callbacks';
+
     /**
      * @var Request
      */
@@ -102,32 +118,49 @@ class Callback implements CallbackInterface
     /**
      * Register the callback if conditions match the request parameters.
      *
-     * @param string|array $conditions String or associative array matching the request parameters.
-     *                             If string, the parameter is the defaultConditionName.
-     * @param Closure $callback
+     * @param string|array $condition String or associative array matching the request parameters.
+     *                             If string, the parameter is either one of the custom conditions
+     *                             specified or the defaultConditionName.
+     * @param Closure|string $callback Closure or name of the method in the callback handler class.
      *
      * @return $this
      */
-    public function on($conditions, Closure $callback)
+    public function on($condition, $callback)
     {
-        if ($this->matches($conditions)) {
-            $this->register($callback);
+        if ($this->isCustomCondition($condition)) {
+            return $this->{$condition}($callback);
+        }
+
+        if ($this->matches($condition)) {
+            return $this->register($callback);
         }
 
         return $this;
     }
 
-    public function matches($conditions)
+    public function isCustomCondition($condition)
     {
-        if (!is_array($conditions)) {
-            $conditions = [$this->defaultConditionName => $conditions];
+        return in_array($condition, $this->customConditions);
+    }
+
+    /**
+     * Check if the request payload matches a condition.
+     *
+     * @param array|string $condition
+     *
+     * @return bool
+     */
+    public function matches($condition)
+    {
+        if (!is_array($condition)) {
+            $condition = [$this->defaultConditionName => $condition];
         }
 
         $payload = $this->getPayload();
 
-        foreach ($conditions as $key => $value) {
+        foreach ($condition as $key => $value) {
             if (!isset($payload[$key])) {
-                throw new \RuntimeException('Unknown key '.$key.' in the conditions passed to the "on" method.');
+                throw new InvalidPayloadKeyException('Unknown key '.$key.' in the conditions passed to the "on" method.');
             }
   
             if ($payload[$key] != $value) {
@@ -143,11 +176,11 @@ class Callback implements CallbackInterface
      *
      * The successful transaction is determined by the code of the request.
      *
-     * @param Closure $callback
+     * @param Closure|string $callback
      *
      * @return $this
      */
-    public function success(Closure $callback)
+    public function success($callback)
     {
         $this->registerIf($this->isSuccessful(), $callback);
 
@@ -159,11 +192,11 @@ class Callback implements CallbackInterface
      *
      * The failed request is determined by the code of the request.
      *
-     * @param Closure $callback
+     * @param Closure|string $callback
      *
      * @return $this
      */
-    public function failure(Closure $callback)
+    public function failure($callback)
     {
         $this->registerIf($this->failed(), $callback);
 
@@ -173,11 +206,11 @@ class Callback implements CallbackInterface
     /**
      * Run callback whether the transaction is successful or not.
      *
-     * @param Closure $callback
+     * @param Closure|string $callback
      *
      * @return $this
      */
-    public function always(Closure $callback)
+    public function always($callback)
     {
         return $this->register($callback);
     }
@@ -185,11 +218,11 @@ class Callback implements CallbackInterface
     /**
      * Register callback.
      *
-     * @param Closure $callback
+     * @param Closure|string $callback
      *
      * @return $this
      */
-    public function register(Closure $callback)
+    public function register($callback)
     {
         $this->callbacks[] = $callback;
 
@@ -200,11 +233,11 @@ class Callback implements CallbackInterface
      * Register the callback if the condition is met.
      *
      * @param bool|Closure $condition
-     * @param Closure $callback
-     * 
+     * @param Closure|string $callback
+     *
      * @return void
      */
-    public function registerIf($condition, Closure $callback)
+    public function registerIf($condition, $callback)
     {
         $mustBeRegistered = is_callable($condition) ? call_user_func($condition) : $condition;
 
@@ -216,14 +249,19 @@ class Callback implements CallbackInterface
     /**
      * Run the registered callbacks against the callback request.
      *
-     * @param Closure $callback Optional callback that will be run after all the callbacks have been run.
+     * @param Closure|string|object $callback If a Closure is passed, this callback will be added
+     *                                        to the callbacks stack and will be run after all the
+     *                                        callbacks have been run.
+     *                                        If a string or an object is passed, it will be
+     *                                        considered as a class containing the callback
+     *                                        handling methods.
      *
      * @return $this
      */
-    public function process(Closure $callback = null)
+    public function process($callback = null)
     {
         if ($callback) {
-            $this->register($callback);
+            $this->registerProcessCallback($callback);
         }
 
         $this->runCallbacks();
@@ -231,12 +269,118 @@ class Callback implements CallbackInterface
         return $this;
     }
 
+    public function registerProcessCallback($callback)
+    {
+        if ($callback instanceof Closure) {
+            return $this->register($callback);
+        }
+
+        if (class_exists($callback) || is_object($callback)) {
+            return $this->registerFromClass($callback);
+        }
+
+        if (is_string($callback)) {
+            throw new \Exception('Class '.$callback.' not found.');
+        }
+
+        throw new \Exception('Invalid parameter passed to "process" method. Closure, classname or object expected.');
+    }
+
+    public function registerFromClass($handler)
+    {
+        $this->setCallbackHandler($handler);
+
+        $bag = $this->getCallbackBagFromHandler();
+
+        foreach ($bag as $bagItem) {
+            $this->on(...$this->getRegistrationParams($bagItem));
+        }
+    }
+
+    public function setCallbackHandler($handler)
+    {
+        if (is_string($handler)) {
+            $handler = new $handler;
+        }
+
+        if (!is_object($handler)) {
+            throw new InvalidHandlerException("The callback handler must be a classname or an object");
+        }
+
+        $this->handler = $handler;
+
+        return $this;
+    }
+
+    public function getRegistrationParams($callback, $handler = null)
+    {
+        $handler = $handler ?: $this->handler;
+
+        $condition = $callback[self::HANDLER_CONDITION];
+        $methods = $callback[self::HANDLER_CALLBACK];
+        $methods = is_array($methods) ? $methods : [$methods];
+
+        foreach ($methods as $method) {
+            if (is_string($method) && !method_exists($this->handler, $method)) {
+                $condition = is_string($condition) ? $condition : json_encode($condition);
+                throw new InvalidHandlerException('Method "'.$method.'" expected by condition '.$condition.' is not found in the handler class "'.get_class($this->handler).'"');
+            }
+        }
+
+        return [$condition, $methods];
+    }
+
+    public function getCallbackBagFromHandler($handler = null)
+    {
+        $handler = $handler ?: $this->handler;
+
+        if (method_exists($handler, $this->callbackBagName)) {
+            return call_user_func([$handler, $this->callbackBagName], $this);
+        }
+
+        if (property_exists($handler, $this->callbackBagName)) {
+            return $handler->{$this->callbackBagName};
+        }
+
+        throw new UndefinedCallbackBagException('The callback handler class must contain a method or a property "'.$this->callbackBagName.'"');
+    }
+
+    public function runClosure($closure, $bindTo = null)
+    {
+        if ($bindTo) {
+            $callback = $closure->bindTo($bindTo);
+        }
+
+        return call_user_func_array($callback, [$this]);        
+    }
+
     public function runCallbacks()
     {
         foreach ($this->callbacks as $callback) {
-            $callback = $callback->bindTo($this);
+            if ($callback instanceof Closure) {
+                $this->runClosure($callback, $this);
+                continue;
+            }
+            
+            if (is_array($callback)) {
+                foreach ($callback as $actualCallback) {
+                    if ($actualCallback instanceof Closure) {
+                        $this->runClosure($actualCallback, $this);
+                    } elseif(is_object($this->handler)) {
+                        call_user_func_array([$this->handler, $actualCallback], [$this]);
+                    }
+                }
 
-            call_user_func_array($callback, [$this]);
+                continue;
+            }
+
+            if ((is_string($callback)) && is_object($this->handler)) {
+                $callback = is_string($callback) ? [$callback] : $callback;
+
+                foreach ($callback as $actualCallback) {
+                    call_user_func_array([$this->handler, $actualCallback], [$this]);
+                }
+            }
         }
     }
 

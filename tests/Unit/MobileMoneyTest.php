@@ -21,7 +21,6 @@ class MobileMoneyTest extends TestCase
 
     public function testAutoConfig()
     {
-
         $this->runConfigTest();
     }
 
@@ -69,7 +68,7 @@ class MobileMoneyTest extends TestCase
         $payment = new MobileMoney;
 
         $payment->configure();
-        $this->assertEquals($payment->getApiId(), env($prefix.'TXTPAY_ID'.$suffix));        
+        $this->assertEquals($payment->getApiId(), env($prefix.'TXTPAY_ID'.$suffix));
         $this->assertEquals($payment->getApiKey(), env($prefix.'TXTPAY_KEY'.$suffix));
         $this->assertEquals($payment->getAccount(), env($prefix.'TXTPAY_ACCOUNT'.$suffix));
         $this->assertEquals($payment->getNickname(), env($prefix.'TXTPAY_NICKNAME'.$suffix));

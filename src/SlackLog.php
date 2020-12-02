@@ -14,7 +14,7 @@ use function Prinx\Dotenv\env;
 class SlackLog
 {
     /**
-     * HTTP Client
+     * HTTP Client.
      *
      * @var \Symfony\Component\HttpClient\HttpClient
      */
