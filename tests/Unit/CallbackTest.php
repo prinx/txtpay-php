@@ -20,6 +20,8 @@ class CallbackTest extends TestCase
 {
     public function testMustProperlyGetPayloadParametersWithTheirCustomNames()
     {
+        $this->loadEnv(realpath(__DIR__.'/../../').'/.env');
+
         $momoService = new MobileMoney;
         $payload = $_POST = [
             'code'              => '000',

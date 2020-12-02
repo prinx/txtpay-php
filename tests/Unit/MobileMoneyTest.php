@@ -11,10 +11,10 @@
 
 namespace Tests\Unit;
 
-use function Prinx\Dotenv\env;
-use function Prinx\Dotenv\persistEnv;
 use Tests\TestCase;
 use Txtpay\MobileMoney;
+use function Prinx\Dotenv\env;
+use function Prinx\Dotenv\persistEnv;
 
 class MobileMoneyTest extends TestCase
 {
@@ -97,19 +97,5 @@ class MobileMoneyTest extends TestCase
         foreach ($this->defaultConfig as $key => $value) {
             persistEnv($prefix.$key.$suffix, $value);
         }
-    }
-
-    public function createEnvIfNotExist($path)
-    {
-        if (!file_exists($path)) {
-            file_put_contents($path, '');
-        }
-    }
-
-    public function loadEnv($env)
-    {
-        $this->createEnvIfNotExist($env);
-
-        loadEnv($env);
     }
 }

@@ -21,6 +21,8 @@ class CallbackHandlerMustThrowExceptionTest extends TestCase
 {
     public function testCallbackHandlerMustThrowInvalidHandlerException()
     {
+        $this->loadEnv(realpath(__DIR__.'/../../').'/.env');
+
         $this->expectException(InvalidHandlerException::class);
 
         $_POST = [
