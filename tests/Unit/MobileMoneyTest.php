@@ -1,21 +1,29 @@
 <?php
 
+/*
+ * This file is part of the Txtpay package.
+ *
+ * (c) Prince Dorcis <princedorcis@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE file that was distributed with this source code.
+ */
+
 namespace Tests\Unit;
 
-use Tests\TestCase;
-use Txtpay\MobileMoney;
 use function Prinx\Dotenv\env;
 use function Prinx\Dotenv\persistEnv;
+use Tests\TestCase;
+use Txtpay\MobileMoney;
 
 class MobileMoneyTest extends TestCase
 {
     protected $defaultConfig = [
-        'TXTPAY_ID' => 'your_txtpay_id',
-        'TXTPAY_KEY' => 'your_txtpay_key',
-        'TXTPAY_ACCOUNT' => 'your_txtpay_account',
-        'TXTPAY_NICKNAME' => 'your_txtpay_nickname',
-        'TXTPAY_DESCRIPTION' => 'your_txtpay_description',
-        'TXTPAY_PRIMARY_CALLBACK' => 'primary_callback',
+        'TXTPAY_ID'                 => 'your_txtpay_id',
+        'TXTPAY_KEY'                => 'your_txtpay_key',
+        'TXTPAY_ACCOUNT'            => 'your_txtpay_account',
+        'TXTPAY_NICKNAME'           => 'your_txtpay_nickname',
+        'TXTPAY_DESCRIPTION'        => 'your_txtpay_description',
+        'TXTPAY_PRIMARY_CALLBACK'   => 'primary_callback',
         'TXTPAY_SECONDARY_CALLBACK' => 'secondary_callback',
     ];
 
@@ -33,7 +41,7 @@ class MobileMoneyTest extends TestCase
     {
         $this->runConfigTest('', '_SUFFIX');
     }
- 
+
     public function testConfigWithPrefixAndSuffix()
     {
         $this->runConfigTest('PREFIX_', '_SUFFIX');

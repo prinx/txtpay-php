@@ -1,5 +1,13 @@
 <?php
 
+/*
+ * This file is part of the Txtpay package.
+ *
+ * (c) Prince Dorcis <princedorcis@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE file that was distributed with this source code.
+ */
+
 namespace Tests\Unit;
 
 use Tests\TestCase;
@@ -23,7 +31,7 @@ class CallbackHandlerWithClosureTest extends TestCase
             'amount'            => 1,
             'currency'          => 'GHS',
         ];
-        
+
         foreach ($messages as $code => $expectedMessage) {
             if ($code === 'default') {
                 continue;
