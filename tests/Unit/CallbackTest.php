@@ -1,10 +1,17 @@
 <?php
 
+/*
+ * This file is part of the Txtpay package.
+ *
+ * (c) Prince Dorcis <princedorcis@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE file that was distributed with this source code.
+ */
+
 namespace Tests\Unit;
 
 use Tests\TestCase;
 use Txtpay\Callback;
-use Txtpay\Helpers\CallbackHandler;
 use Txtpay\MobileMoney;
 use Txtpay\Support\Combination;
 
@@ -65,7 +72,7 @@ class CallbackTest extends TestCase
             'amount'            => 1,
             'currency'          => 'GHS',
         ];
-        
+
         foreach ($messages as $code => $expectedMessage) {
             $_POST['code'] = $code;
 
@@ -86,7 +93,7 @@ class CallbackTest extends TestCase
     public function callbackFunction($type)
     {
         $test = $this;
-    
+
         return function ($callback) use ($test, $type) {
             $test->assertTrue($callback instanceof Callback, "Inject callback must be the callback instance in closure of type/code {$type}");
             $test->assertSame($this, $callback, "\$this must be equal to \$callback in closure of type/code {$type}");
