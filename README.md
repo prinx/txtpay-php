@@ -556,7 +556,7 @@ TXTPAY_LOG_ENABLED=false
 
 ## Contribute
 
-Star the repo :star:, fork to add new features to the package and submit via pull requests.
+Star :star: the repo, fork to add new features to the package and submit pull requests.
 
 ## License
 
