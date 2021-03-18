@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of the Txtpay package.
+ *
+ * (c) Prince Dorcis <princedorcis@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE file
+ * that was distributed with this source code.
+ */
+
 namespace Txtpay\Abstracts;
 
 use Respect\Validation\Rules\ArrayType;
@@ -24,10 +33,10 @@ abstract class MobileMoneyResponse implements MobileMoneyResponseInterface
     {
         return [
             'isBeingProcessed' => new BoolType(),
-            'body' => new ArrayType(),
-            'bodyRaw' => new StringType(),
-            'full' => new Instance(ResponseInterface::class),
-            'error' => new Optional(new Nullable(new StringType())),
+            'body'             => new ArrayType(),
+            'bodyRaw'          => new StringType(),
+            'full'             => new Instance(ResponseInterface::class),
+            'error'            => new Optional(new Nullable(new StringType())),
         ];
     }
 
@@ -41,9 +50,9 @@ abstract class MobileMoneyResponse implements MobileMoneyResponseInterface
     /**
      * Validate response bag.
      *
-     * @return void
-     *
      * @throws \Respect\Validation\Exceptions\ValidationException
+     *
+     * @return void
      */
     public function validateResponse(array $responseBag)
     {
