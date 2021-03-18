@@ -68,12 +68,12 @@ The mobile money request will automatically return a response from which you can
 ```php
 $request = $payment->request($amount, $phone, $network);
 
-if ($request->isSuccessful) {
-    $status = $request->status;
+if ($request->isBeingProcessed()) {
+    $status = $request->getStatus();
 
     // ...
 } else {
-    $error = $request->error;
+    $error = $request->getError();
 
     // ...
 }
