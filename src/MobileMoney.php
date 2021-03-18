@@ -11,12 +11,14 @@
 
 namespace Txtpay;
 
-use function Prinx\Dotenv\env;
 use Prinx\Notify\Log;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 use Throwable;
 use Txtpay\Contracts\MobileMoneyInterface;
+use Txtpay\Contracts\MobileMoneyResponseInterface;
+use Txtpay\Exceptions\TokenGenerationException;
+use function Prinx\Dotenv\env;
 
 /**
  * TXTGHANA Mobile Money Payment SDK.
@@ -92,14 +94,14 @@ class MobileMoney implements MobileMoneyInterface
      * @param string           $network
      * @param string           $voucherCode
      *
-     * @return stdClass
+     * @return MobileMoneyResponseInterface
      */
     public function request(
         $amount = null,
-        $phone = null,
-        $network = null,
-        $voucherCode = null
-    ) {
+        string $phone = null,
+        string $network = null,
+        string $voucherCode = null
+    ): MobileMoneyResponseInterface {
         if (!$this->configured) {
             $this->configure();
         }
@@ -110,9 +112,12 @@ class MobileMoney implements MobileMoneyInterface
 
         $response = $this->sendRequest($url, $payload, $headers);
 
-        if ($response->isSuccessful) {
-            $response->status = $response->content->status ?? null;
-            $response->transactionId = $this->getTransactionId();
+        if ($response['isSuccessful']) {
+            $response['status'] = $response['body']['status'] ?? null;
+            $response['transactionId'] = $this->getTransactionId();
+            $response['isBeingProcessed'] = $response['isSuccessful'];
+            unset($response['isSuccessful']);
+
             $toLog = (array) $response;
             unset($toLog['developed_by']);
         } else {
@@ -122,7 +127,7 @@ class MobileMoney implements MobileMoneyInterface
         $this->log('Response Mobile money request to '.$payload['recipient'].':');
         $this->log($toLog);
 
-        return $response;
+        return new MobileMoneyResponse($response);
     }
 
     public function momoRequestHeaders()
@@ -149,14 +154,14 @@ class MobileMoney implements MobileMoneyInterface
         }
 
         $payload = [
-            'channel'            => $network,
-            'primary-callback'   => $this->primaryCallback,
+            'channel' => $network,
+            'primary-callback' => $this->primaryCallback,
             'secondary-callback' => $this->secondaryCallback,
-            'amount'             => $amount,
-            'nickname'           => $this->nickname,
-            'description'        => $this->description,
-            'reference'          => $this->getTransactionId(),
-            'recipient'          => $phone,
+            'amount' => $amount,
+            'nickname' => $this->nickname,
+            'description' => $this->description,
+            'reference' => $this->getTransactionId(),
+            'recipient' => $phone,
         ];
 
         if ($voucherCode = $voucherCode ?: $this->voucherCode) {
@@ -166,27 +171,27 @@ class MobileMoney implements MobileMoneyInterface
         return $payload;
     }
 
-    public function generateToken()
+    public function generateToken(): string
     {
         if (!$this->configured) {
             $this->configure();
         }
 
         $payload = [
-            'txtpay_api_id'  => $this->apiId,
+            'txtpay_api_id' => $this->apiId,
             'txtpay_api_key' => $this->apiKey,
         ];
 
         $response = $this->sendRequest($this->getTokenUrl(), $payload);
 
-        if (!$response->isSuccessful || !isset($response->content->data->token)) {
+        if (!$response['isSuccessful'] || !isset($response['body']['data']['token'])) {
             $this->log('Error when generating token:');
             $this->log($response);
 
-            throw new \Exception($response->error);
+            throw new TokenGenerationException($response['error']);
         }
 
-        return $response->content->data->token;
+        return $response['body']['data']['token'];
     }
 
     public function sendRequest($url, $payload, $headers = [])
@@ -197,21 +202,22 @@ class MobileMoney implements MobileMoneyInterface
             ]);
 
             $response = $client->request('POST', $url, [
-                'json'    => $payload,
+                'json' => $payload,
                 'headers' => $headers,
             ]);
 
-            $content = $response->toArray();
-
-            $data = [
+            $responseBag = [
                 'isSuccessful' => true,
-                'content'      => $content,
+                'body' => $response->toArray(true),
+                'bodyRaw' => $response->getContent(false),
+                'full' => $response,
+                'error' => null,
             ];
         } catch (Throwable $th) {
-            $data = $this->errorResponse($th, $response);
+            $responseBag = $this->errorResponse($th, $response);
         }
 
-        return  json_decode(json_encode($data));
+        return $responseBag;
     }
 
     public function errorResponse(Throwable $exception, ResponseInterface $response)
@@ -226,55 +232,70 @@ class MobileMoney implements MobileMoneyInterface
 
         return [
             'isSuccessful' => false,
-            'error'        => $error,
-            'response'     => $parsed ?: $content,
+            'error' => $error,
+            'body' => $parsed,
+            'bodyRaw' => $content,
+            'full' => $response,
         ];
     }
 
     public function getTransactionId()
     {
         if (!isset($this->transactionId)) {
-            $now = date('YmdHi');
-            $beginFrom = date('YmdHi', strtotime('2009-01-10 00:00:00'));
-            $range = $now - $beginFrom;
-            $rand = rand(0, $range);
-
-            $this->transactionId = strval($beginFrom + $rand);
+            $this->generateTransactionId();
         }
 
         return $this->transactionId;
     }
 
-    public function getTokenUrl()
+    public function generateTransactionId()
+    {
+        $now = date('YmdHi');
+        $beginFrom = date('YmdHi', strtotime('2009-01-10 00:00:00'));
+        $range = $now - $beginFrom;
+        $rand = rand(0, $range);
+
+        $this->transactionId = strval($beginFrom + $rand);
+
+        return $this;
+    }
+
+    public function getTokenUrl(): string
     {
         return 'https://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/token';
     }
 
-    public function getPaymentUrl()
+    public function getPaymentUrl(): string
     {
         return 'http://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/payment-app/receive-money/';
     }
 
     public function log($data, $level = 'info')
     {
+        if (env('TXT_LOG_ENABLED', null) === false) {
+            return;
+        }
+
         $logger = $this->getLogger();
 
         if (!is_null($logger) && method_exists($logger, $level)) {
             call_user_func([$logger, $level], $data);
         }
+
+        return $this;
     }
 
-    public function getLogFile()
+    public function getLogFile(): string
     {
         return $this->logFile;
     }
 
-    public function getDefaultLogFile()
+    public function getDefaultLogFile(): string
     {
         return realpath(__DIR__.'/../../../').'/storage/logs/txtpay/mobile-money/transaction.log';
     }
 
-    public function setLogFile($file)
+    public function setLogFile(string $file)
     {
         $this->logFile = $file;
 
@@ -290,37 +311,37 @@ class MobileMoney implements MobileMoneyInterface
 
     public function getLogger()
     {
-        if (is_null($this->logFile)) {
-            $this->logFile = new Log;
-            $this->logFile->setFile($this->getDefaultLogFile());
+        if (is_null($this->logger)) {
+            $this->logger = new Log();
+            $this->logger->setFile($this->logFile ?? $this->getDefaultLogFile());
         }
 
         return $this->logger;
     }
 
-    public function getAccount()
+    public function getAccount(): string
     {
         return $this->account;
     }
 
-    public function setNetwork($network)
+    public function setNetwork(string $network)
     {
         $this->network = $network;
 
         return $this;
     }
 
-    public function getNetwork()
+    public function getNetwork(): string
     {
         return $this->network;
     }
 
-    public function getApiId()
+    public function getApiId(): string
     {
         return $this->apiId;
     }
 
-    public function getApiKey()
+    public function getApiKey(): string
     {
         return $this->apiKey;
     }
@@ -332,12 +353,12 @@ class MobileMoney implements MobileMoneyInterface
         return $this;
     }
 
-    public function getPrimaryCallback()
+    public function getPrimaryCallback(): string
     {
         return $this->primaryCallback;
     }
 
-    public function setSecondaryCallback($callback)
+    public function setSecondaryCallback(string $callback)
     {
         $this->setSecondaryCallback = $callback;
 
@@ -349,7 +370,7 @@ class MobileMoney implements MobileMoneyInterface
         return $this->secondaryCallback;
     }
 
-    public function setDescription($description)
+    public function setDescription(string $description)
     {
         $this->description = $description;
 
@@ -361,7 +382,7 @@ class MobileMoney implements MobileMoneyInterface
         return $this->description;
     }
 
-    public function setNickname($nickname)
+    public function setNickname(string $nickname)
     {
         $this->nickname = $nickname;
 
@@ -373,7 +394,7 @@ class MobileMoney implements MobileMoneyInterface
         return $this->nickname;
     }
 
-    public function setVoucherCode($voucherCode)
+    public function setVoucherCode(string $voucherCode)
     {
         $this->voucherCode = $voucherCode;
 
@@ -385,6 +406,13 @@ class MobileMoney implements MobileMoneyInterface
         return $this->voucherCode;
     }
 
+    /**
+     * Set amount.
+     *
+     * @param string|int|float $amount
+     *
+     * @return $this
+     */
     public function setAmount($amount)
     {
         $this->amount = $amount;

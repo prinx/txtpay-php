@@ -11,6 +11,6 @@
 
 namespace Txtpay\Exceptions;
 
-class UndefinedCallbackBagException extends \Exception
+class InvalidCallbackClassException extends \Exception
 {
 }

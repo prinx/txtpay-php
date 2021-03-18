@@ -16,18 +16,8 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 /**
  * Base Test case.
  */
-class TestCase extends BaseTestCase
+abstract class TestCase extends BaseTestCase
 {
-    /**
-     * Just to shutdown the warning.
-     * WARN  PHPUnit\Framework\WarningTestCase
-     * ! warning → No tests found in class "Tests\TestCase".
-     */
-    public function testTxtpay()
-    {
-        $this->assertTrue(1 === 1);
-    }
-
     public function createEnvIfNotExist($path)
     {
         if (!file_exists($path)) {

@@ -24,14 +24,14 @@ interface MobileMoneyInterface
      * @param string           $network
      * @param string           $voucherCode
      *
-     * @return stdClass
+     * @return MobileMoneyResponseInterface
      */
     public function request(
         $amount = null,
-        $phone = null,
-        $network = null,
-        $voucherCode = null
-    );
+        string $phone = null,
+        string $network = null,
+        string $voucherCode = null
+    ): MobileMoneyResponseInterface;
 
-    public function generateToken();
+    public function generateToken(): string;
 }

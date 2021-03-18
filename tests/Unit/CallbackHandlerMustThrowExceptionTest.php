@@ -13,17 +13,17 @@ namespace Tests\Unit;
 
 use Tests\TestCase;
 use Txtpay\Callback;
-use Txtpay\Exceptions\InvalidHandlerException;
+use Txtpay\Exceptions\InvalidCallbackHandlerException;
 use Txtpay\Helpers\Tests\CallbackHandlerMustThrowException;
 use Txtpay\MobileMoney;
 
 class CallbackHandlerMustThrowExceptionTest extends TestCase
 {
-    public function testCallbackHandlerMustThrowInvalidHandlerException()
+    public function testCallbackHandlerMustThrowInvalidCallbackHandlerException()
     {
         $this->loadEnv(realpath(__DIR__.'/../../').'/.env');
 
-        $this->expectException(InvalidHandlerException::class);
+        $this->expectException(InvalidCallbackHandlerException::class);
 
         $_POST = [
             'code'              => '000',

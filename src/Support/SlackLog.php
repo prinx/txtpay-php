@@ -9,11 +9,11 @@
  * that was distributed with this source code.
  */
 
-namespace Txtpay;
+namespace Txtpay\Support;
 
-use function Prinx\Dotenv\env;
 use Symfony\Component\HttpClient\HttpClient;
 use Throwable;
+use function Prinx\Dotenv\env;
 
 /**
  * Simple log to slack.
@@ -42,7 +42,6 @@ class SlackLog
                 ],
             ]);
         } catch (Throwable $th) {
-            //
         }
     }
 

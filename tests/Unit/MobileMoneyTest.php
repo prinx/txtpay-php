@@ -11,20 +11,20 @@
 
 namespace Tests\Unit;
 
-use function Prinx\Dotenv\env;
-use function Prinx\Dotenv\persistEnv;
 use Tests\TestCase;
 use Txtpay\MobileMoney;
+use function Prinx\Dotenv\env;
+use function Prinx\Dotenv\persistEnv;
 
 class MobileMoneyTest extends TestCase
 {
     protected $defaultConfig = [
-        'TXTPAY_ID'                 => 'your_txtpay_id',
-        'TXTPAY_KEY'                => 'your_txtpay_key',
-        'TXTPAY_ACCOUNT'            => 'your_txtpay_account',
-        'TXTPAY_NICKNAME'           => 'your_txtpay_nickname',
-        'TXTPAY_DESCRIPTION'        => 'your_txtpay_description',
-        'TXTPAY_PRIMARY_CALLBACK'   => 'primary_callback',
+        'TXTPAY_ID' => 'your_txtpay_id',
+        'TXTPAY_KEY' => 'your_txtpay_key',
+        'TXTPAY_ACCOUNT' => 'your_txtpay_account',
+        'TXTPAY_NICKNAME' => 'your_txtpay_nickname',
+        'TXTPAY_DESCRIPTION' => 'your_txtpay_description',
+        'TXTPAY_PRIMARY_CALLBACK' => 'primary_callback',
         'TXTPAY_SECONDARY_CALLBACK' => 'secondary_callback',
     ];
 
@@ -58,7 +58,7 @@ class MobileMoneyTest extends TestCase
     {
         $this->loadEnv(realpath(__DIR__.'/../../').'/.env.bis');
 
-        $payment = new MobileMoney;
+        $payment = new MobileMoney();
 
         $amount = 0.2;
         $phone = env('TEST_PHONE');
@@ -67,8 +67,8 @@ class MobileMoneyTest extends TestCase
         $request = $payment->request($amount, $phone, $network);
 
         // dump($request);
-        $this->assertTrue($request->isSuccessful);
-        $this->assertEquals($request->transactionId, $payment->getTransactionId());
+        $this->assertTrue($request->isBeingProcessed());
+        $this->assertEquals($request->getTransactionId(), $payment->getTransactionId());
     }
 
     public function runConfigTest($prefix = '', $suffix = '')
@@ -77,7 +77,7 @@ class MobileMoneyTest extends TestCase
 
         $this->fillEnvWithConfig($prefix, $suffix);
 
-        $payment = new MobileMoney;
+        $payment = new MobileMoney();
 
         $payment->configure();
         $this->assertEquals($payment->getApiId(), env($prefix.'TXTPAY_ID'.$suffix));

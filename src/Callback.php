@@ -14,10 +14,13 @@ namespace Txtpay;
 use Closure;
 use Prinx\Notify\Log;
 use Txtpay\Contracts\CallbackInterface;
-use Txtpay\Exceptions\InvalidHandlerException;
+use Txtpay\Exceptions\CallbackClassNotFoundException;
+use Txtpay\Exceptions\InvalidCallbackClassException;
+use Txtpay\Exceptions\InvalidCallbackHandlerException;
 use Txtpay\Exceptions\InvalidPayloadKeyException;
 use Txtpay\Exceptions\UndefinedCallbackBagException;
 use Txtpay\Http\Request;
+use Txtpay\Support\SlackLog;
 
 /**
  * TXTGHANA Payment Gateway SDK.
@@ -64,14 +67,14 @@ class Callback implements CallbackInterface
     ];
 
     protected $customPayloadNames = [
-        'code'              => 'code',
-        'status'            => 'status',
-        'reason'            => 'details',
-        'transaction_id'    => 'id',
-        'r_switch'          => 'network',
+        'code' => 'code',
+        'status' => 'status',
+        'reason' => 'details',
+        'transaction_id' => 'id',
+        'r_switch' => 'network',
         'subscriber_number' => 'phone',
-        'amount'            => 'amount',
-        'currency'          => 'currency',
+        'amount' => 'amount',
+        'currency' => 'currency',
     ];
 
     protected $defaultConditionName = 'code';
@@ -289,10 +292,10 @@ class Callback implements CallbackInterface
         }
 
         if (is_string($callback)) {
-            throw new \Exception('Class '.$callback.' not found.');
+            throw new CallbackClassNotFoundException('Class '.$callback.' not found.');
         }
 
-        throw new \Exception('Invalid parameter passed to "process" method. Closure, classname or object expected.');
+        throw new InvalidCallbackClassException('Invalid parameter passed to "process" method. Closure, classname or object expected.');
     }
 
     public function registerFromClass($handler)
@@ -309,11 +312,11 @@ class Callback implements CallbackInterface
     public function setCallbackHandler($handler)
     {
         if (is_string($handler)) {
-            $handler = new $handler;
+            $handler = new $handler();
         }
 
         if (!is_object($handler)) {
-            throw new InvalidHandlerException('The callback handler must be a classname or an object');
+            throw new InvalidCallbackHandlerException('The callback handler must be a classname or an object');
         }
 
         $this->handler = $handler;
@@ -333,7 +336,7 @@ class Callback implements CallbackInterface
             if (is_string($method) && !method_exists($this->handler, $method)) {
                 $condition = is_string($condition) ? $condition : json_encode($condition);
 
-                throw new InvalidHandlerException('Method "'.$method.'" expected by condition '.$condition.' is not found in the handler class "'.get_class($this->handler).'"');
+                throw new InvalidCallbackHandlerException('Method "'.$method.'" expected by condition '.$condition.' is not found in the handler class "'.get_class($this->handler).'"');
             }
         }
 
@@ -465,7 +468,7 @@ class Callback implements CallbackInterface
 
     public function getLogger()
     {
-        return $this->logger ?? $this->logger = new Log;
+        return $this->logger ?? $this->logger = new Log();
     }
 
     public function log($message, $file = '', $level = 'info')
@@ -501,14 +504,14 @@ class Callback implements CallbackInterface
     public static function getMessages($code = null, $transactionId = null)
     {
         $messages = [
-            '000'     => 'Transaction successful. Your transaction ID is '.$transactionId,
-            '101'     => 'Transaction failed. Insufficient fund in wallet.',
-            '102'     => 'Transaction failed. Number non-registered for mobile money.',
-            '103'     => 'Transaction failed. Wrong PIN. Transaction timed out.',
-            '104'     => 'Transaction failed. Transaction declined',
-            '114'     => 'Transaction failed. Invalid voucher',
-            '600'     => 'Transaction failed. Can not process request',
-            '909'     => 'Transaction failed. Duplicate transaction id.',
+            '000' => 'Transaction successful. Your transaction ID is '.$transactionId,
+            '101' => 'Transaction failed. Insufficient fund in wallet.',
+            '102' => 'Transaction failed. Number non-registered for mobile money.',
+            '103' => 'Transaction failed. Wrong PIN. Transaction timed out.',
+            '104' => 'Transaction failed. Transaction declined',
+            '114' => 'Transaction failed. Invalid voucher',
+            '600' => 'Transaction failed. Can not process request',
+            '909' => 'Transaction failed. Duplicate transaction id.',
             'default' => 'Transaction failed.',
         ];
 
@@ -559,6 +562,11 @@ class Callback implements CallbackInterface
     public function getId()
     {
         return $this->getPayload('id');
+    }
+
+    public function getTransactionId()
+    {
+        return $this->getId();
     }
 
     public function getPhone()

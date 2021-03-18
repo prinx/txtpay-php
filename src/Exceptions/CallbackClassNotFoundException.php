@@ -11,7 +11,6 @@
 
 namespace Txtpay\Exceptions;
 
-class Exception extends \Exception
+class CallbackClassNotFoundException extends \Exception
 {
-    //
 }

@@ -11,7 +11,6 @@
 
 namespace Txtpay\Exceptions;
 
-class InvalidHandlerException extends Exception
+class InvalidCallbackHandlerException extends \Exception
 {
-    //
 }

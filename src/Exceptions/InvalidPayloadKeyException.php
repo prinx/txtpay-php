@@ -11,7 +11,6 @@
 
 namespace Txtpay\Exceptions;
 
-class InvalidPayloadKeyException extends Exception
+class InvalidPayloadKeyException extends \Exception
 {
-    //
 }

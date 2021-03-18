@@ -91,7 +91,7 @@ To process the callback, you first need to create a callback instance:
 // callback.php
 use Txtpay\Callback;
 
-$callback = new Callback;
+$callback = new Callback();
 ```
 
 If the callback route is handled by a controller:
@@ -108,7 +108,7 @@ class MobileMoneyCallbackController extends Controller
 {
     public function processCallback()
     {
-        $callback = new Callback;
+        $callback = new Callback();
     }
 }
 ```
@@ -143,7 +143,7 @@ $callback->success(function ($callback) {
 })->process();
 ```
 
->TIP
+>TIP:
 In case you have only one callback function that will be run whether the transaction is successful or not, you can simply pass the function to the process method:
 
 ```php
@@ -530,6 +530,12 @@ You can provide in your `.env` file a slack webhook to automatically log transac
 
 ```ini
 SLACK_LOG_WEBHOOK=https://
+```
+
+#### Disable logs
+
+```ini
+TXT_LOG_ENABLED=false
 ```
 
 ## Contribute
