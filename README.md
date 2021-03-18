@@ -524,23 +524,39 @@ $callback->setLogFolder($path);
 
 If no folder has been set, a default log folder will be created at `YOUR_PROJECT_ROOT_FOLDER/storage/logs/txtpay/`.
 
+You can disable local logs by using the env variable (It is enabled by default):
+
+```ini
+TXTPAY_LOCAL_LOG_ENABLED=false
+```
+
 #### Logging to SLACK
 
 You can provide in your `.env` file a slack webhook to automatically log transactions to slack.
 
 ```ini
-SLACK_LOG_WEBHOOK=https://
+TXTPAY_SLACK_LOG_WEBHOOK=https://
 ```
+
+You can disable logging to SLACK by putting in the `.env`:
+
+```ini
+TXTPAY_SLACK_LOG_ENABLED=false
+```
+
+It is enabled by default.
 
 #### Disable logs
 
+To disable the whole logging system, put in your `.env` file:
+
 ```ini
-TXT_LOG_ENABLED=false
+TXTPAY_LOG_ENABLED=false
 ```
 
 ## Contribute
 
-Star the repo :star: and feel free to fork create pull requests to add features to the package.
+Star the repo :star:, fork to add new features to the package and submit via pull requests.
 
 ## License
 

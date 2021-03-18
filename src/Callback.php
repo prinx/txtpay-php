@@ -67,14 +67,14 @@ class Callback implements CallbackInterface
     ];
 
     protected $customPayloadNames = [
-        'code'              => 'code',
-        'status'            => 'status',
-        'reason'            => 'details',
-        'transaction_id'    => 'id',
-        'r_switch'          => 'network',
+        'code' => 'code',
+        'status' => 'status',
+        'reason' => 'details',
+        'transaction_id' => 'id',
+        'r_switch' => 'network',
         'subscriber_number' => 'phone',
-        'amount'            => 'amount',
-        'currency'          => 'currency',
+        'amount' => 'amount',
+        'currency' => 'currency',
     ];
 
     protected $defaultConditionName = 'code';
@@ -471,17 +471,23 @@ class Callback implements CallbackInterface
         return $this->logger ?? $this->logger = new Log();
     }
 
-    public function log($message, $file = '', $level = 'info')
+    public function log(string $message, $file = '', $level = 'info')
     {
-        if ($this->canLog) {
-            SlackLog::log($message, $level);
-
-            if ($file && $this->getLogger()) {
-                $this->getLogger()
-                    ->setFile($file)
-                    ->{$level}($message);
-            }
+        if (!$this->canLog || env('TXTPAY_LOG_ENABLED', null) === false) {
+            return $this;
         }
+
+        SlackLog::log($message, $level);
+
+        if (env('TXTPAY_LOCAL_LOG_ENABLED', true) === false || !$file || !$this->getLogger()) {
+            return $this;
+        }
+
+        $this->getLogger()
+            ->setFile($file)
+            ->{$level}($message);
+
+        return $this;
     }
 
     public function isSuccessful()
@@ -504,14 +510,14 @@ class Callback implements CallbackInterface
     public static function getMessages($code = null, $transactionId = null)
     {
         $messages = [
-            '000'     => 'Transaction successful. Your transaction ID is '.$transactionId,
-            '101'     => 'Transaction failed. Insufficient fund in wallet.',
-            '102'     => 'Transaction failed. Number non-registered for mobile money.',
-            '103'     => 'Transaction failed. Wrong PIN. Transaction timed out.',
-            '104'     => 'Transaction failed. Transaction declined',
-            '114'     => 'Transaction failed. Invalid voucher',
-            '600'     => 'Transaction failed. Can not process request',
-            '909'     => 'Transaction failed. Duplicate transaction id.',
+            '000' => 'Transaction successful. Your transaction ID is '.$transactionId,
+            '101' => 'Transaction failed. Insufficient fund in wallet.',
+            '102' => 'Transaction failed. Number non-registered for mobile money.',
+            '103' => 'Transaction failed. Wrong PIN. Transaction timed out.',
+            '104' => 'Transaction failed. Transaction declined',
+            '114' => 'Transaction failed. Invalid voucher',
+            '600' => 'Transaction failed. Can not process request',
+            '909' => 'Transaction failed. Duplicate transaction id.',
             'default' => 'Transaction failed.',
         ];
 

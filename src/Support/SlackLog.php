@@ -11,9 +11,9 @@
 
 namespace Txtpay\Support;
 
-use function Prinx\Dotenv\env;
 use Symfony\Component\HttpClient\HttpClient;
 use Throwable;
+use function Prinx\Dotenv\env;
 
 /**
  * Simple log to slack.
@@ -29,13 +29,23 @@ class SlackLog
      */
     protected static $httpClient;
 
+    /**
+     * Log to Slack.
+     *
+     * @param string|array $message
+     * @param string       $level
+     *
+     * @return void
+     */
     public static function log($message, $level = 'info')
     {
-        if (!($url = env('SLACK_LOG_WEBHOOK', null))) {
+        if (!($url = env('TXTPAY_SLACK_LOG_WEBHOOK', null)) || env('TXTPAY_SLACK_LOG_ENABLED', false) === false) {
             return;
         }
 
         try {
+            $message = is_string($message) ? $message : json_encode($message);
+
             static::getLogger()->request('POST', $url, [
                 'json' => [
                     'text' => '['.strtoupper($level).'] ['.date('D, d m Y, H:i:s')."]\n".$message,

@@ -11,7 +11,6 @@
 
 namespace Txtpay;
 
-use function Prinx\Dotenv\env;
 use Prinx\Notify\Log;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\ResponseInterface;
@@ -19,6 +18,8 @@ use Throwable;
 use Txtpay\Contracts\MobileMoneyInterface;
 use Txtpay\Contracts\MobileMoneyResponseInterface;
 use Txtpay\Exceptions\TokenGenerationException;
+use Txtpay\Support\SlackLog;
+use function Prinx\Dotenv\env;
 
 /**
  * TXTGHANA Mobile Money Payment SDK.
@@ -154,14 +155,14 @@ class MobileMoney implements MobileMoneyInterface
         }
 
         $payload = [
-            'channel'            => $network,
-            'primary-callback'   => $this->primaryCallback,
+            'channel' => $network,
+            'primary-callback' => $this->primaryCallback,
             'secondary-callback' => $this->secondaryCallback,
-            'amount'             => $amount,
-            'nickname'           => $this->nickname,
-            'description'        => $this->description,
-            'reference'          => $this->getTransactionId(),
-            'recipient'          => $phone,
+            'amount' => $amount,
+            'nickname' => $this->nickname,
+            'description' => $this->description,
+            'reference' => $this->getTransactionId(),
+            'recipient' => $phone,
         ];
 
         if ($voucherCode = $voucherCode ?: $this->voucherCode) {
@@ -178,7 +179,7 @@ class MobileMoney implements MobileMoneyInterface
         }
 
         $payload = [
-            'txtpay_api_id'  => $this->apiId,
+            'txtpay_api_id' => $this->apiId,
             'txtpay_api_key' => $this->apiKey,
         ];
 
@@ -202,16 +203,16 @@ class MobileMoney implements MobileMoneyInterface
             ]);
 
             $response = $client->request('POST', $url, [
-                'json'    => $payload,
+                'json' => $payload,
                 'headers' => $headers,
             ]);
 
             $responseBag = [
                 'isSuccessful' => true,
-                'body'         => $response->toArray(true),
-                'bodyRaw'      => $response->getContent(false),
-                'full'         => $response,
-                'error'        => null,
+                'body' => $response->toArray(true),
+                'bodyRaw' => $response->getContent(false),
+                'full' => $response,
+                'error' => null,
             ];
         } catch (Throwable $th) {
             $responseBag = $this->errorResponse($th, $response);
@@ -232,10 +233,10 @@ class MobileMoney implements MobileMoneyInterface
 
         return [
             'isSuccessful' => false,
-            'error'        => $error,
-            'body'         => $parsed,
-            'bodyRaw'      => $content,
-            'full'         => $response,
+            'error' => $error,
+            'body' => $parsed,
+            'bodyRaw' => $content,
+            'full' => $response,
         ];
     }
 
@@ -272,15 +273,21 @@ class MobileMoney implements MobileMoneyInterface
 
     public function log($data, $level = 'info')
     {
-        if (env('TXT_LOG_ENABLED', null) === false) {
-            return;
+        if (env('TXTPAY_LOG_ENABLED', null) === false) {
+            return $this;
         }
+
+        $message = is_string($data) ? $data : json_encode($data);
+
+        SlackLog::log($message, $level);
 
         $logger = $this->getLogger();
 
-        if (!is_null($logger) && method_exists($logger, $level)) {
-            call_user_func([$logger, $level], $data);
+        if (env('TXTPAY_LOCAL_LOG_ENABLED', true) === false || is_null($logger) || method_exists($logger, $level)) {
+            return $this;
         }
+
+        call_user_func([$logger, $level], $data);
 
         return $this;
     }
