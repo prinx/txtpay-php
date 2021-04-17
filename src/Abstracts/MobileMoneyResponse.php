@@ -60,23 +60,4 @@ abstract class MobileMoneyResponse implements MobileMoneyResponseInterface
             $rule->check($responseBag[$key] ?? null);
         }
     }
-
-    abstract public function isBeingProcessed(): bool;
-
-    /**
-     * Error.
-     *
-     * @return string|null
-     */
-    abstract public function getError();
-
-    abstract public function getBody(): array;
-
-    abstract public function getBodyRaw(): string;
-
-    abstract public function getFull(): ResponseInterface;
-
-    abstract public function getStatus();
-
-    abstract public function getTransactionId(): string;
 }

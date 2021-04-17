@@ -40,7 +40,7 @@ class MobileMoneyResponse extends Abstracts\MobileMoneyResponse
         return $this->responseBag('full');
     }
 
-    public function getStatus(): ResponseInterface
+    public function getStatus()
     {
         return $this->responseBag('status');
     }
