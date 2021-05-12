@@ -268,7 +268,7 @@ class MobileMoney implements MobileMoneyInterface
 
     public function getPaymentUrl(): string
     {
-        return 'http://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/payment-app/receive-money/';
+        return 'https://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/payment-app/receive-money/';
     }
 
     public function log($data, $level = 'info')
