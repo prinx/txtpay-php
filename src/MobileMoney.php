@@ -11,7 +11,6 @@
 
 namespace Txtpay;
 
-use function Prinx\Dotenv\env;
 use Prinx\Notify\Log;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\ResponseInterface;
@@ -20,6 +19,7 @@ use Txtpay\Contracts\MobileMoneyInterface;
 use Txtpay\Contracts\MobileMoneyResponseInterface;
 use Txtpay\Exceptions\TokenGenerationException;
 use Txtpay\Support\SlackLog;
+use function Prinx\Dotenv\env;
 
 /**
  * TXTGHANA Mobile Money Payment SDK.
@@ -46,6 +46,7 @@ class MobileMoney implements MobileMoneyInterface
     protected $envCredententialsPrefix = '';
     protected $envCredententialsSuffix = '';
     protected $configured = false;
+    protected $baseUrl = 'https://sevotransact.com/api/v1/';
 
     /**
      * Automatically discover and set configurations in the .env file.
@@ -155,14 +156,14 @@ class MobileMoney implements MobileMoneyInterface
         }
 
         $payload = [
-            'channel'            => $network,
-            'primary-callback'   => $this->primaryCallback,
+            'channel' => $network,
+            'primary-callback' => $this->primaryCallback,
             'secondary-callback' => $this->secondaryCallback,
-            'amount'             => $amount,
-            'nickname'           => $this->nickname,
-            'description'        => $this->description,
-            'reference'          => $this->getTransactionId(),
-            'recipient'          => $phone,
+            'amount' => $amount,
+            'nickname' => $this->nickname,
+            'description' => $this->description,
+            'reference' => $this->getTransactionId(),
+            'recipient' => $phone,
         ];
 
         if ($voucherCode = $voucherCode ?: $this->voucherCode) {
@@ -179,7 +180,7 @@ class MobileMoney implements MobileMoneyInterface
         }
 
         $payload = [
-            'txtpay_api_id'  => $this->apiId,
+            'txtpay_api_id' => $this->apiId,
             'txtpay_api_key' => $this->apiKey,
         ];
 
@@ -203,16 +204,16 @@ class MobileMoney implements MobileMoneyInterface
             ]);
 
             $response = $client->request('POST', $url, [
-                'json'    => $payload,
+                'json' => $payload,
                 'headers' => $headers,
             ]);
 
             $responseBag = [
                 'isSuccessful' => true,
-                'body'         => $response->toArray(true),
-                'bodyRaw'      => $response->getContent(false),
-                'full'         => $response,
-                'error'        => null,
+                'body' => $response->toArray(true),
+                'bodyRaw' => $response->getContent(false),
+                'full' => $response,
+                'error' => null,
             ];
         } catch (Throwable $th) {
             $responseBag = $this->errorResponse($th, $response);
@@ -233,10 +234,10 @@ class MobileMoney implements MobileMoneyInterface
 
         return [
             'isSuccessful' => false,
-            'error'        => $error,
-            'body'         => $parsed,
-            'bodyRaw'      => $content,
-            'full'         => $response,
+            'error' => $error,
+            'body' => $parsed,
+            'bodyRaw' => $content,
+            'full' => $response,
         ];
     }
 
@@ -263,12 +264,12 @@ class MobileMoney implements MobileMoneyInterface
 
     public function getTokenUrl(): string
     {
-        return 'https://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/token';
+        return $this->baseUrl.$this->account.'/token';
     }
 
     public function getPaymentUrl(): string
     {
-        return 'https://txtpay.apps2.txtghana.com/api/v1/'.$this->account.'/payment-app/receive-money/';
+        return $this->baseUrl.$this->account.'/payment-app/receive-money/';
     }
 
     public function log($data, $level = 'info')
