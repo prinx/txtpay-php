@@ -34,11 +34,15 @@ TXTPAY_PRIMARY_CALLBACK=primary_callback
 TXTPAY_SECONDARY_CALLBACK=secondary_callback
 ```
 
-The primary and secondary callbacks are URL where `TXTPAY` will send the result of the transaction. YOu can check how to handle the transaction callback [here](#process-callback).
+The primary and secondary callbacks are URL where `TXTPAY` will send the result of the transaction. YOu can check how to handle the transaction callback [here](#process-callback). The secondary callback is optional.
 
 ### Request a payment
 
 ```php
+require 'path/to/vendor/autoload.php'; // Not needed if using a framework.
+
+use Txtpay\MobileMoney;
+
 $payment = new MobileMoney;
 
 $amount = 1; // 1 GHC
@@ -60,6 +64,8 @@ $request = $payment->request($amount, $phone, $network, $voucherCode);
 $payment->setVoucherCode($voucherCode);
 $request = $payment->request($amount, $phone, $network);
 ```
+
+> The voucher code is now optional. If not passed, the user will directly receive a prompt on their phone to accept the transaction.
 
 #### Mobile money request response
 
@@ -85,16 +91,21 @@ This response is just to notify you that your request has been received and is b
 ### Process callback
 
 The result of the transaction will be sent to the callback URL provided when sending the request.
-To process the callback, you first need to create a callback instance:
+To process the callback, create a new route in your favorite framework, or create an php file in your project to handle the callback. The URL resolving to that route or that file is (must be) the one you provided in the `.env.` as callback URL.
+
+Now you can create a callback instance that will receive the status of your transactions:
 
 ```php
-// callback.php
+// File: callback.php
+
+require 'path/to/vendor/autoload.php';
+
 use Txtpay\Callback;
 
-$callback = new Callback();
+$callback = new Callback;
 ```
 
-If the callback route is handled by a controller:
+Or if you are using a framework and the callback route is handled by a controller:
 
 ```php
 // This is just an example.
@@ -108,22 +119,24 @@ class MobileMoneyCallbackController extends Controller
 {
     public function processCallback()
     {
-        $callback = new Callback();
+        $callback = new Callback;
     }
 }
 ```
 
-Everything is the same except the code will be in a method instead of directly in the file.
-
-Now, we must register the callback functions that will be run on success, failure or some defined custom condition of the mobile money transaciton. The callback will receive the `$callback` instance.
+We can now register the callback functions that will be run on success, failure or some defined custom condition of the mobile money transaciton. The callback functions will receive the `$callback` instance.
 
 ```php
-$callback->success(function ($callback) {
+$callback->success(function (Callback $callback) {
     // Transaction was successful. Do stuff.
-})->failure(function ($callback) {
+})->failure(function (Callback $callback) {
     // Transaction failed. Do stuff.
+})->always(function (Callback $callback) {
+    // Do stuff whether transaction was successful or not.
 });
 ```
+
+> You are not require to use all the callbacks. Just use the one that is needed.
 
 Now, run everything, by calling the `process` method on the callback.
 
@@ -134,11 +147,13 @@ $callback->process();
 The full code will be:
 
 ```php
-$callback = new Callback();
+$callback = new Callback;
 
-$callback->success(function ($callback) {
+$callback->success(function (Callback $callback) {
     //
-})->failure(function ($callback) {
+})->failure(function (Callback $callback) {
+    //
+})->always(function (Callback $callback) {
     //
 })->process();
 ```
@@ -149,7 +164,7 @@ In case you have only one callback function that will be run whether the transac
 ```php
 $callback = new Callback;
 
-$callback->process(function ($callback) {
+$callback->process(function (Callback $callback) {
     //
 });
 ```
@@ -169,15 +184,15 @@ use Txtpay\Callback;
 
 $callback = new Callback;
 
-$callback->on('000', function ($callback) {
+$callback->on('000', function (Callback $callback) {
     //
-})->on('101', function ($callback) {
+})->on('101', function (Callback $callback) {
     //
-})->on(['code' => '000', 'phone' => '233...'], function ($callback) {
+})->on(['code' => '000', 'phone' => '233...'], function (Callback $callback) {
     //
-})->success(function ($callback){
+})->success(function (Callback $callback){
     // We can still chain the success or failure methods.
-})->failure(function ($callback) {
+})->failure(function (Callback $callback) {
     //
 })->process();
 ```
@@ -297,7 +312,7 @@ These are the possible messages:
 The callback instance is automatically passed to the closure. You can then use it as below:
 
 ```php
-$callback->success(function ($callback) {
+$callback->success(function (Callback $callback) {
     $message = $callback->getMessage();
 });
 ```
