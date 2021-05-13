@@ -175,7 +175,7 @@ The code of the transaction determines if the transaction is successful or has f
 
 #### The `on` method
 
-The `on` method takes as first parameter an array of conditions that can match the request payload and as second parameter a callback function that will be run if the conditions match the payload.
+The `on` method is a powerful way of listening to the transaction request callbacks. It takes as first parameter an array of conditions that can match the request payload and as second parameter a callback function that will be run if the conditions match the payload.
 
 A string can be passed as condition, then it will be considered as the code sent in the payload to the callback URL.
 
@@ -317,25 +317,18 @@ $callback->success(function (Callback $callback) {
 });
 ```
 
-Or you can ignore the passed instance and directly use `$this` in the closure.
-
-```php
-$callback->success(function () {
-    $message = $this->getMessage();
-});
-```
-
 ### Passing other parameter(s) to the closure
 
 You can easily pass other parameters to the closure by using the PHP `use` keyword on the closure:
 
 ```php
 
+// SmsService is your own implementation.
 $sms = new SmsService();
 
-$callback->success(function () use ($sms) {
-    $message = $this->getMessage();
-    $phone = $this->getPhone();
+$callback->success(function (Callback $callback) use ($sms) {
+    $message = $callback->getMessage();
+    $phone = $callback->getPhone();
 
     $sms->send($message, $phone);
 });

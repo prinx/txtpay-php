@@ -67,14 +67,14 @@ class Callback implements CallbackInterface
     ];
 
     protected $customPayloadNames = [
-        'code'              => 'code',
-        'status'            => 'status',
-        'reason'            => 'details',
-        'transaction_id'    => 'id',
-        'r_switch'          => 'network',
+        'code' => 'code',
+        'status' => 'status',
+        'reason' => 'details',
+        'transaction_id' => 'id',
+        'r_switch' => 'network',
         'subscriber_number' => 'phone',
-        'amount'            => 'amount',
-        'currency'          => 'currency',
+        'amount' => 'amount',
+        'currency' => 'currency',
     ];
 
     protected $defaultConditionName = 'code';
@@ -358,27 +358,23 @@ class Callback implements CallbackInterface
         throw new UndefinedCallbackBagException('The callback handler class must contain a method or a property "'.$this->callbackBagName.'"');
     }
 
-    public function runClosure($closure, $bindTo = null)
+    public function runClosure($closure)
     {
-        if ($bindTo) {
-            $callback = $closure->bindTo($bindTo);
-        }
-
-        return call_user_func_array($callback, [$this]);
+        return call_user_func_array($closure, [$this]);
     }
 
     public function runCallbacks()
     {
         foreach ($this->callbacks as $callback) {
             if ($callback instanceof Closure) {
-                $this->runClosure($callback, $this);
+                $this->runClosure($callback);
                 continue;
             }
 
             if (is_array($callback)) {
                 foreach ($callback as $actualCallback) {
                     if ($actualCallback instanceof Closure) {
-                        $this->runClosure($actualCallback, $this);
+                        $this->runClosure($actualCallback);
                     } elseif (is_object($this->handler)) {
                         call_user_func_array([$this->handler, $actualCallback], [$this]);
                     }
@@ -510,14 +506,14 @@ class Callback implements CallbackInterface
     public static function getMessages($code = null, $transactionId = null)
     {
         $messages = [
-            '000'     => 'Transaction successful. Your transaction ID is '.$transactionId,
-            '101'     => 'Transaction failed. Insufficient fund in wallet.',
-            '102'     => 'Transaction failed. Number non-registered for mobile money.',
-            '103'     => 'Transaction failed. Wrong PIN. Transaction timed out.',
-            '104'     => 'Transaction failed. Transaction declined',
-            '114'     => 'Transaction failed. Invalid voucher',
-            '600'     => 'Transaction failed. Can not process request',
-            '909'     => 'Transaction failed. Duplicate transaction id.',
+            '000' => 'Transaction successful. Your transaction ID is '.$transactionId,
+            '101' => 'Transaction failed. Insufficient fund in wallet.',
+            '102' => 'Transaction failed. Number non-registered for mobile money.',
+            '103' => 'Transaction failed. Wrong PIN. Transaction timed out.',
+            '104' => 'Transaction failed. Transaction declined',
+            '114' => 'Transaction failed. Invalid voucher',
+            '600' => 'Transaction failed. Can not process request',
+            '909' => 'Transaction failed. Duplicate transaction id.',
             'default' => 'Transaction failed.',
         ];
 
