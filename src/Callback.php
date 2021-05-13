@@ -11,7 +11,6 @@
 
 namespace Txtpay;
 
-use Closure;
 use Prinx\Notify\Log;
 use Txtpay\Contracts\CallbackInterface;
 use Txtpay\Exceptions\CallbackClassNotFoundException;
@@ -101,7 +100,7 @@ class Callback implements CallbackInterface
     protected $isSuccessful;
 
     /**
-     * @var Closure[]
+     * @var callable[]
      */
     protected $callbacks = [];
 
@@ -130,10 +129,10 @@ class Callback implements CallbackInterface
     /**
      * Register the callback if conditions match the request parameters.
      *
-     * @param string|array   $condition String or associative array matching the request parameters.
-     *                                  If string, the parameter is either one of the custom conditions
-     *                                  specified or the defaultConditionName.
-     * @param Closure|string $callback  Closure or name of the method in the callback handler class.
+     * @param string|array    $condition String or associative array matching the request parameters.
+     *                                   If string, the parameter is either one of the custom conditions
+     *                                   specified or the defaultConditionName.
+     * @param callable|string $callback  callable or name of the method in the callback handler class.
      *
      * @return $this
      */
@@ -188,7 +187,7 @@ class Callback implements CallbackInterface
      *
      * The successful transaction is determined by the code of the request.
      *
-     * @param Closure|string $callback
+     * @param callable|string $callback
      *
      * @return $this
      */
@@ -204,7 +203,7 @@ class Callback implements CallbackInterface
      *
      * The failed request is determined by the code of the request.
      *
-     * @param Closure|string $callback
+     * @param callable|string $callback
      *
      * @return $this
      */
@@ -218,7 +217,7 @@ class Callback implements CallbackInterface
     /**
      * Run callback whether the transaction is successful or not.
      *
-     * @param Closure|string $callback
+     * @param callable|string $callback
      *
      * @return $this
      */
@@ -230,7 +229,7 @@ class Callback implements CallbackInterface
     /**
      * Register callback.
      *
-     * @param Closure|string $callback
+     * @param callable|string $callback
      *
      * @return $this
      */
@@ -244,8 +243,8 @@ class Callback implements CallbackInterface
     /**
      * Register the callback if the condition is met.
      *
-     * @param bool|Closure   $condition
-     * @param Closure|string $callback
+     * @param bool|callable   $condition
+     * @param callable|string $callback
      *
      * @return void
      */
@@ -261,12 +260,12 @@ class Callback implements CallbackInterface
     /**
      * Run the registered callbacks against the callback request.
      *
-     * @param Closure|string|object $callback If a Closure is passed, this callback will be added
-     *                                        to the callbacks stack and will be run after all the
-     *                                        callbacks have been run.
-     *                                        If a string or an object is passed, it will be
-     *                                        considered as a class containing the callback
-     *                                        handling methods.
+     * @param callable|string|object $callback If a callable is passed, this callback will be added
+     *                                         to the callbacks stack and will be run after all the
+     *                                         callbacks have been run.
+     *                                         If a string or an object is passed, it will be
+     *                                         considered as a class containing the callback
+     *                                         handling methods.
      *
      * @return $this
      */
@@ -283,7 +282,7 @@ class Callback implements CallbackInterface
 
     public function registerProcessCallback($callback)
     {
-        if ($callback instanceof Closure) {
+        if (is_callable($callback)) {
             return $this->register($callback);
         }
 
@@ -295,7 +294,7 @@ class Callback implements CallbackInterface
             throw new CallbackClassNotFoundException('Class '.$callback.' not found.');
         }
 
-        throw new InvalidCallbackClassException('Invalid parameter passed to "process" method. Closure, classname or object expected.');
+        throw new InvalidCallbackClassException('Invalid parameter passed to "process" method. Callable, classname or object expected.');
     }
 
     public function registerFromClass($handler)
@@ -358,23 +357,23 @@ class Callback implements CallbackInterface
         throw new UndefinedCallbackBagException('The callback handler class must contain a method or a property "'.$this->callbackBagName.'"');
     }
 
-    public function runClosure($closure)
+    public function runCallable($callable)
     {
-        return call_user_func_array($closure, [$this]);
+        return call_user_func_array($callable, [$this]);
     }
 
     public function runCallbacks()
     {
         foreach ($this->callbacks as $callback) {
-            if ($callback instanceof Closure) {
-                $this->runClosure($callback);
+            if (is_callable($callback)) {
+                $this->runCallable($callback);
                 continue;
             }
 
             if (is_array($callback)) {
                 foreach ($callback as $actualCallback) {
-                    if ($actualCallback instanceof Closure) {
-                        $this->runClosure($actualCallback);
+                    if (is_callable($actualCallback)) {
+                        $this->runCallable($actualCallback);
                     } elseif (is_object($this->handler)) {
                         call_user_func_array([$this->handler, $actualCallback], [$this]);
                     }
