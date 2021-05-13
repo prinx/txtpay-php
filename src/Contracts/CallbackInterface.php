@@ -78,8 +78,6 @@ interface CallbackInterface
      */
     public function process(Closure $callback = null);
 
-    public function runCallbacks();
-
     public function isSuccessful();
 
     public function failed();

@@ -119,7 +119,7 @@ class Callback implements CallbackInterface
         $this->handlePayload();
     }
 
-    public function handlePayload()
+    private function handlePayload()
     {
         $this->validatePayload();
         $this->setPayload($this->request->input->all());
@@ -280,7 +280,17 @@ class Callback implements CallbackInterface
         return $this;
     }
 
-    public function registerProcessCallback($callback)
+    /**
+     * Register callback passed to the `process` method.
+     *
+     * @param callable|object|string $callback
+     *
+     * @throws CallbackClassNotFoundException
+     * @throws InvalidCallbackClassException
+     *
+     * @return $this
+     */
+    private function registerProcessCallback($callback)
     {
         if (is_callable($callback)) {
             return $this->register($callback);
@@ -297,7 +307,7 @@ class Callback implements CallbackInterface
         throw new InvalidCallbackClassException('Invalid parameter passed to "process" method. Callable, classname or object expected.');
     }
 
-    public function registerFromClass($handler)
+    private function registerFromClass($handler)
     {
         $this->setCallbackHandler($handler);
 
@@ -323,7 +333,7 @@ class Callback implements CallbackInterface
         return $this;
     }
 
-    public function getRegistrationParams($callback, $handler = null)
+    private function getRegistrationParams($callback, $handler = null)
     {
         $handler = $handler ?: $this->handler;
 
@@ -342,7 +352,7 @@ class Callback implements CallbackInterface
         return [$condition, $methods];
     }
 
-    public function getCallbackBagFromHandler($handler = null)
+    private function getCallbackBagFromHandler($handler = null)
     {
         $handler = $handler ?: $this->handler;
 
@@ -357,12 +367,12 @@ class Callback implements CallbackInterface
         throw new UndefinedCallbackBagException('The callback handler class must contain a method or a property "'.$this->callbackBagName.'"');
     }
 
-    public function runCallable($callable)
+    private function runCallable($callable)
     {
         return call_user_func_array($callable, [$this]);
     }
 
-    public function runCallbacks()
+    private function runCallbacks()
     {
         foreach ($this->callbacks as $callback) {
             if (is_callable($callback)) {
@@ -435,7 +445,7 @@ class Callback implements CallbackInterface
         return $attribute ? $this->payload[$attribute] ?? null : $this->payload;
     }
 
-    public function validatePayload()
+    private function validatePayload()
     {
         $payload = $this->request->input->all();
 
@@ -452,7 +462,7 @@ class Callback implements CallbackInterface
         }
     }
 
-    public function logPayload()
+    private function logPayload()
     {
         $this->log(
             'Callback Received for momo transaction to '.$this->getPayload('phone').
