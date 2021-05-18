@@ -9,7 +9,7 @@ before_script:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 
-script: vendor/bin/phpunit
+script: vendor/bin/phpunit --coverage-clover coverage.xml
 
 matrix:
     allow_failures:
@@ -20,3 +20,7 @@ matrix:
 notifications:
     on_success: never
     on_failure: always
+
+env:
+    global:
+        - XDEBUG_MODE=coverage
