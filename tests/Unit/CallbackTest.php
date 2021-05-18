@@ -99,7 +99,6 @@ class CallbackTest extends TestCase
 
         return function ($callback) use ($test, $type) {
             $test->assertTrue($callback instanceof Callback, "Inject callback must be the callback instance in closure of type/code {$type}");
-            $test->assertSame($this, $callback, "\$this must be equal to \$callback in closure of type/code {$type}");
         };
     }
 }
