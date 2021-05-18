@@ -8,9 +8,17 @@
 
 TXTGHANA Payment Gateway PHP SDK
 
-## DEPRECATED
+## DEPRECATION
 
-This package has been deprecated. Kindly find the successor of this package [here](https://github.com/prinx/sevotransact).
+If this is your first time to use the package, we recommend to use its successor that you can find [here](https://github.com/prinx/sevotransact).
+
+### Why?
+
+Following the change of name of TxtPay to Sevotransact, things changed and we decided to rather create a new package following the same spirit as this one.
+
+### But I'm already using this!
+
+If you are already using this package and cannot switch to the new, don't worry. We will still be maintaining this package (even though we will be happy you switch).
 
 ## Installation
 
