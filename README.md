@@ -8,6 +8,10 @@
 
 TXTGHANA Payment Gateway PHP SDK
 
+## DEPRECATED
+
+This package has been deprecated. Kindly find the successor of this package [here](https://github.com/prinx/sevotransact).
+
 ## Installation
 
 The package can be installed via composer. Install it if you don't have it yet. Then open a terminal in your project root folder and run:
