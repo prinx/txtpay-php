@@ -8,7 +8,7 @@
 
 TXTGHANA Payment Gateway PHP SDK
 
-## DEPRECATION
+## 🔥 DEPRECATION
 
 If this is your first time to use the package, we recommend to use its successor that you can find [here](https://github.com/prinx/sevotransact).
 
