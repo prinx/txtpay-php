@@ -6,7 +6,7 @@
     "minimum-stability": "stable",
     "require": {
         "php": ">=7.3",
-        "prinx/dotenv": "^0.4",
+        "prinx/dotenv": "^0.5",
         "prinx/notify": "^0.0",
         "symfony/http-client": "^5.1",
         "illuminate/collections": "^8.16",
