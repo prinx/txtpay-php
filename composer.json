@@ -35,5 +35,8 @@
                 "Txtpay\\Laravel\\ServiceProvider"
             ]
         }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
     }
 }
