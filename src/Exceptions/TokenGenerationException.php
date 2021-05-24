@@ -13,4 +13,9 @@ namespace Txtpay\Exceptions;
 
 class TokenGenerationException extends \Exception
 {
+    public function __construct($message = '', $code = 0)
+    {
+        $message = $message ?: 'Cannot generate token. A possible reason is invalid API credentials.';
+        parent::__construct($message, $code);
+    }
 }
